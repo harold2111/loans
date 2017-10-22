@@ -16,7 +16,7 @@ type City struct {
 
 func findCityByID(cityID uint) (*City, error) {
 	var city City
-	response := config.DB.Where("ID = ?", cityID).First(&city)
+	response := config.DB.First(&city, cityID)
 	if error := response.Error; error != nil {
 		if response.RecordNotFound() {
 			messagesParameters := []interface{}{cityID}

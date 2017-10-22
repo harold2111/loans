@@ -30,7 +30,6 @@ func (client *Client) Save() error {
 	}
 	error := config.DB.Create(client).Error
 	if error != nil {
-		fmt.Println(error)
 		if postgres.IsUniqueConstraintError(error, UniqueConstraintIdentification) {
 			messagesParameters := []interface{}{client.Identification}
 			return &errors.GracefulError{ErrorCode: errors.IdentificationDuplicate, MessagesParameters: messagesParameters}
@@ -40,9 +39,11 @@ func (client *Client) Save() error {
 }
 
 func (client *Client) UpdateClient() error {
+	if exist, error := clientExist(client.ID); !exist {
+		return error
+	}
 	error := config.DB.Save(client).Error
 	if error != nil {
-		fmt.Println(error)
 		if postgres.IsUniqueConstraintError(error, UniqueConstraintIdentification) {
 			messagesParameters := []interface{}{client.Identification}
 			return &errors.GracefulError{ErrorCode: errors.IdentificationDuplicate, MessagesParameters: messagesParameters}
@@ -50,7 +51,30 @@ func (client *Client) UpdateClient() error {
 		return error
 	}
 	client.Addresses, error = findAddressesByClientId(client.ID)
-	return nil
+	return error
+}
+
+func FindClientByID(clientID uint) (*Client, error) {
+	var client Client
+	response := config.DB.First(&client, clientID)
+	if error := response.Error; error != nil {
+		if response.RecordNotFound() {
+			messagesParameters := []interface{}{clientID}
+			return nil, &errors.RecordNotFound{ErrorCode: errors.ClientNotExist, MessagesParameters: messagesParameters}
+		}
+		return nil, error
+	}
+	return &client, nil
+}
+
+func clientExist(clientID uint) (bool, error) {
+	if _, error := FindClientByID(clientID); error != nil {
+		if _, ok := error.(*errors.RecordNotFound); ok {
+			return false, error
+		}
+		return false, error
+	}
+	return true, nil
 }
 
 func validateClientAddress(addresses []Address) error {
@@ -59,9 +83,6 @@ func validateClientAddress(addresses []Address) error {
 	}
 	for _, address := range addresses {
 		if _, error := findCityByID(address.CityID); error != nil {
-			if recordNotFound, ok := error.(*errors.RecordNotFound); ok {
-				return &errors.GracefulError{ErrorCode: recordNotFound.ErrorCode, MessagesParameters: recordNotFound.MessagesParameters}
-			}
 			return error
 		}
 	}
