@@ -6,6 +6,8 @@ const (
 	CityNotExist            = "CityNotExist"
 	ClientNotAddressFound   = "AddressNotExist"
 	ClientNotExist          = "ClientNotExist"
+	LoanNotExist            = "LoanNotExist"
+	ToManyBillActives       = "ToManyBillActives"
 
 	RequiredField = "RequiredField"
 	InvalidField  = "InvalidField"
@@ -17,6 +19,8 @@ var ErrorMessages = map[string]string{
 	CityNotExist:            "City '%v' not exist",
 	ClientNotAddressFound:   "No addresses found for client '%v'",
 	ClientNotExist:          "Client '%v' not exist",
+	LoanNotExist:            "Loan '%v' not exist",
+	ToManyBillActives:       "To many bill actives",
 
 	RequiredField: "The field '%v' is mandatory",
 	InvalidField:  "The field '%v' is invalid",
