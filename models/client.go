@@ -23,7 +23,7 @@ const (
 	UniqueConstraintIdentification = "uix_clients_identification"
 )
 
-func (client *Client) Save() error {
+func (client *Client) Create() error {
 	if error := validateClientAddress(client.Addresses); error != nil {
 		fmt.Println(error)
 		return error
@@ -38,7 +38,7 @@ func (client *Client) Save() error {
 	return error
 }
 
-func (client *Client) UpdateClient() error {
+func (client *Client) Update() error {
 	if exist, error := clientExist(client.ID); !exist {
 		return error
 	}

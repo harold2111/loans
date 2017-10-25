@@ -22,7 +22,7 @@ func CreateLoan(context echo.Context) error {
 	if error := copier.Copy(&loan, &request); error != nil {
 		return error
 	}
-	if error := loan.Save(); error != nil {
+	if error := loan.Create(); error != nil {
 		return error
 	}
 	response := new(dtos.LoanResponse)

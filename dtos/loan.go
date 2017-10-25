@@ -11,11 +11,11 @@ import (
 "closeDate": "2017-10-31T11:14:41-05:00"
 */
 type commanLoanFields struct {
-	Principal     decimal.Decimal `json:"principal"`
-	InterestRate  decimal.Decimal `json:"interestRate"`
-	PeriodNumbers uint            `json:"periodNumbers"`
-	StartDate     time.Time       `json:"startDate"`
-	ClientID      uint            `json:"clientID"`
+	Principal          decimal.Decimal `json:"principal"`
+	InterestRatePeriod decimal.Decimal `json:"interestRatePeriod"`
+	PeriodNumbers      uint            `json:"periodNumbers"`
+	StartDate          time.Time       `json:"startDate"`
+	ClientID           uint            `json:"clientID"`
 }
 
 type CreateLoan struct {
