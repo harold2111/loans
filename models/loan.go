@@ -1,6 +1,7 @@
 package models
 
 import (
+	"fmt"
 	"loans/config"
 	"loans/errors"
 	"strconv"
@@ -35,8 +36,13 @@ func (loan *Loan) Save() error {
 	calculatePaymentOfLoan(loan)
 	calculateCloseDateAgreed(loan)
 	loan.State = LoanStateActive
-	error := config.DB.Create(loan).Error
-	return error
+	if error := config.DB.Create(loan).Error; error != nil {
+		return nil
+	}
+	if error := CreateInitialBill(loan.ID); error != nil {
+		return nil
+	}
+	return nil
 }
 
 func calculatePaymentOfLoan(loan *Loan) {
@@ -103,4 +109,17 @@ func getBalancingInSpecificPeriodNumber(principal decimal.Decimal, interestRate 
 		initialBalance = finalBalance
 	}
 	return finalBalance.RoundBank(5)
+}
+
+func CalculateInterestPastOfDue(MonthlyInterestRateForLate, paymentLate decimal.Decimal, daysLate int) decimal.Decimal {
+	efectiveAnnualInterestRate := efectiveMonthlyToAnnual(MonthlyInterestRateForLate)
+	fmt.Println("efectiveAnnualInterestRate:", efectiveAnnualInterestRate)
+	dailyInteres := efectiveAnnualInterestRate.Div(decimal.NewFromFloat(366))
+	fmt.Println("dailyInteres:", dailyInteres)
+	return paymentLate.Mul(dailyInteres).Mul(decimal.NewFromFloat(float64(daysLate))).Round(5)
+}
+
+func efectiveMonthlyToAnnual(monthlyRate decimal.Decimal) decimal.Decimal {
+	one := decimal.NewFromFloat(1)
+	return one.Add(monthlyRate).Pow(decimal.NewFromFloat(12))
 }

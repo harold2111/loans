@@ -6,8 +6,11 @@ import (
 	"loans/controllers"
 	"loans/errors"
 	"loans/migration"
+	"loans/models"
 	"loans/validators"
 	"time"
+
+	"github.com/shopspring/decimal"
 
 	"github.com/labstack/echo"
 )
@@ -17,7 +20,9 @@ func main() {
 	validators.InitValidator()
 	config.InitDB("host=localhost user=postgres dbname=loans sslmode=disable password=Nayarin1214")
 	migration.MigrateModel(config.DB)
-	startPaymentJob()
+	//startPaymentJob()
+
+	fmt.Println(models.CalculateInterestPastOfDue(decimal.NewFromFloat(0.022248), decimal.NewFromFloat(5000000), 16))
 
 	echoContext := echo.New()
 	echoContext.HTTPErrorHandler = errors.CustomHTTPErrorHandler
