@@ -23,17 +23,26 @@ func CalculatePayment(principal decimal.Decimal, interestRatePeriod decimal.Deci
 	return payment
 }
 
-func BalancingExpectedInSpecificPeriodNumber(principal decimal.Decimal, interestRatePeriod decimal.Decimal, periodNumbers int, specificPeriod int) decimal.Decimal {
+func BalanceExpectedInSpecificPeriod(principal decimal.Decimal, interestRatePeriod decimal.Decimal, periodNumbers int, specificPeriod int) Balance {
 	payment := CalculatePayment(principal, interestRatePeriod, periodNumbers)
 	initialBalance := principal
-	var finalBalance decimal.Decimal
+	toInterest := decimal.Zero
+	toPrincipal := decimal.Zero
+	finalBalance := decimal.Zero
 	for period := 0; period < specificPeriod; period++ {
-		toInterest := initialBalance.Mul(interestRatePeriod)
-		toCapital := payment.Sub(toInterest)
-		finalBalance = initialBalance.Sub(toCapital)
-		initialBalance = finalBalance
+		if period > 0 {
+			initialBalance = finalBalance
+		}
+		toInterest = initialBalance.Mul(interestRatePeriod)
+		toPrincipal = payment.Sub(toInterest)
+		finalBalance = initialBalance.Sub(toPrincipal)
+
 	}
-	return finalBalance
+	return Balance{
+		InitialBalance: initialBalance,
+		ToInterest:     toInterest,
+		ToPrincipal:    toPrincipal,
+		FinalBalance:   finalBalance}
 }
 
 func CalculateInterestPastOfDue(effectiveAnnualInterestRate, paymentLate decimal.Decimal, daysLate int) decimal.Decimal {

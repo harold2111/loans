@@ -21,15 +21,23 @@ func TestCalculatePaymentExpectedSuccess(t *testing.T) {
 	}
 }
 
-func TestBalancingExpectedInSpecificPeriodNumberExpectedSuccess(t *testing.T) {
+func TestBalanceExpectedInSpecificPeriodExpectedSuccess(t *testing.T) {
 	principal := decimal.NewFromFloat(5000000)
 	interestRatePeriod := decimal.NewFromFloat(0.03)
 	periodNumbers := 24
 	specificPeriod := 17
+	balance := BalanceExpectedInSpecificPeriod(principal, interestRatePeriod, periodNumbers, specificPeriod)
+
 	balanceExpected := decimal.NewFromFloat(1839410.545684)
-	balanceActual := BalancingExpectedInSpecificPeriodNumber(principal, interestRatePeriod, periodNumbers, specificPeriod).RoundBank(round)
+	balanceActual := balance.FinalBalance.RoundBank(round)
 	if !balanceActual.Equal(balanceExpected) {
 		t.Fatalf("Expected %s but got %s", balanceExpected, balanceActual)
+	}
+
+	toPrincipalExpect := decimal.NewFromFloat(233062.877062)
+	toPrincipalActual := balance.ToPrincipal.RoundBank(round)
+	if !toPrincipalActual.Equal(toPrincipalExpect) {
+		t.Fatalf("Expected %s but got %s", toPrincipalExpect, toPrincipalActual)
 	}
 }
 

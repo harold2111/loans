@@ -83,3 +83,7 @@ func addMothToTimeUtil(startTime time.Time, monthToAdd int) time.Time {
 	}
 	return endTime
 }
+
+func BalanceExpectedInSpecificPeriodOfLoan(loan Loan, period int) financial.Balance {
+	return financial.BalanceExpectedInSpecificPeriod(loan.Principal, loan.InterestRatePeriod, int(loan.PeriodNumbers), period)
+}

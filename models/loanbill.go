@@ -68,8 +68,8 @@ func CreateInitialBill(loanID uint) error {
 	newBill.ExtraPayment = decimal.Zero
 	newBill.PaymentToPrincipal = decimal.Zero
 	newBill.FinalBalance = decimal.Zero
-	newBill.FinalBalanceExpected =
-		financial.BalancingExpectedInSpecificPeriodNumber(loan.Principal, loan.InterestRatePeriod, int(loan.PeriodNumbers), int(newBill.Period)).RoundBank(config.Round)
+	balanceExpected := BalanceExpectedInSpecificPeriodOfLoan(*loan, int(newBill.Period))
+	newBill.FinalBalanceExpected = balanceExpected.FinalBalance.Round(config.Round)
 	newBill.Arrrears = decimal.Zero
 	newBill.AccumulatedArrears = decimal.Zero
 	newBill.Create()
@@ -124,9 +124,8 @@ func RecurringLoanBillingByLoanID(loanID uint) error {
 	newBill.Payment = decimal.Zero
 	newBill.ExtraPayment = decimal.Zero
 	newBill.FinalBalance = decimal.Zero
-	newBill.FinalBalanceExpected =
-		financial.BalancingExpectedInSpecificPeriodNumber(
-			loan.Principal, loan.InterestRatePeriod, int(loan.PeriodNumbers), int(newBill.Period)).RoundBank(config.Round)
+	balanceExpected := BalanceExpectedInSpecificPeriodOfLoan(*loan, int(newBill.Period))
+	newBill.FinalBalanceExpected = balanceExpected.FinalBalance.RoundBank(config.Round)
 	newBill.Arrrears = decimal.Zero
 	newBill.AccumulatedArrears = decimal.Zero
 	newBill.Create()
