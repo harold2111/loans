@@ -39,6 +39,7 @@ func BalanceExpectedInSpecificPeriod(principal decimal.Decimal, interestRatePeri
 
 	}
 	return Balance{
+		Payment:        payment,
 		InitialBalance: initialBalance,
 		ToInterest:     toInterest,
 		ToPrincipal:    toPrincipal,

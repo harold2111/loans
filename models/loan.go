@@ -55,17 +55,17 @@ func calculatePaymentOfLoan(loan *Loan) {
 
 }
 
-func FindLoanByID(loanID uint) (*Loan, error) {
-	var client Loan
-	response := config.DB.First(&client, loanID)
+func FindLoanByID(loanID uint) (Loan, error) {
+	var loan Loan
+	response := config.DB.First(&loan, loanID)
 	if error := response.Error; error != nil {
 		if response.RecordNotFound() {
 			messagesParameters := []interface{}{loanID}
-			return nil, &errors.RecordNotFound{ErrorCode: errors.ClientNotExist, MessagesParameters: messagesParameters}
+			return loan, &errors.RecordNotFound{ErrorCode: errors.ClientNotExist, MessagesParameters: messagesParameters}
 		}
-		return nil, error
+		return loan, error
 	}
-	return &client, nil
+	return loan, nil
 }
 
 func calculateCloseDateAgreed(loan *Loan) {
@@ -84,6 +84,6 @@ func addMothToTimeUtil(startTime time.Time, monthToAdd int) time.Time {
 	return endTime
 }
 
-func BalanceExpectedInSpecificPeriodOfLoan(loan Loan, period int) financial.Balance {
+func balanceExpectedInSpecificPeriodOfLoan(loan Loan, period int) financial.Balance {
 	return financial.BalanceExpectedInSpecificPeriod(loan.Principal, loan.InterestRatePeriod, int(loan.PeriodNumbers), period)
 }

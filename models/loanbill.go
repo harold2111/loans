@@ -1,10 +1,8 @@
 package models
 
 import (
-	"fmt"
 	"loans/config"
 	"loans/errors"
-	"loans/financial"
 	"time"
 
 	"github.com/jinzhu/gorm"
@@ -13,22 +11,21 @@ import (
 
 type LoanBill struct {
 	gorm.Model
-	LoanID               uint
-	State                string
-	Period               uint
-	BillStartDate        time.Time
-	BillEndDate          time.Time
-	InitialBalance       decimal.Decimal `gorm:"type:numeric"`
-	Interest             decimal.Decimal `gorm:"type:numeric"`
-	DaysLate             int
-	InterestForLate      decimal.Decimal `gorm:"type:numeric"`
-	Payment              decimal.Decimal `gorm:"type:numeric"`
-	ExtraPayment         decimal.Decimal `gorm:"type:numeric"`
-	PaymentToPrincipal   decimal.Decimal `gorm:"type:numeric"`
-	FinalBalance         decimal.Decimal `gorm:"type:numeric"`
-	FinalBalanceExpected decimal.Decimal `gorm:"type:numeric"`
-	Arrrears             decimal.Decimal `gorm:"type:numeric"`
-	AccumulatedArrears   decimal.Decimal `gorm:"type:numeric"`
+	LoanID        uint
+	State         string
+	Period        uint
+	BillStartDate time.Time
+	BillEndDate   time.Time
+	PaymentndDate time.Time
+	Payment       decimal.Decimal `gorm:"type:numeric"`
+	InterestRate  decimal.Decimal `gorm:"type:numeric"`
+	Interest      decimal.Decimal `gorm:"type:numeric"`
+	Principal     decimal.Decimal `gorm:"type:numeric"`
+	DaysLate      int
+	FeeLate       decimal.Decimal `gorm:"type:numeric"`
+	Paid          decimal.Decimal `gorm:"type:numeric"`
+	ExtraPaid     decimal.Decimal `gorm:"type:numeric"`
+	Due           decimal.Decimal `gorm:"type:numeric"`
 }
 
 func (loanBill *LoanBill) Create() error {
@@ -52,26 +49,27 @@ func CreateInitialBill(loanID uint) error {
 		return &errors.GracefulError{ErrorCode: errors.BillAlreadyExist}
 	}
 
-	var newBill LoanBill
-	initialBalance := loan.Principal
-	interestRate := loan.InterestRatePeriod
+	period := 1
+	round := config.Round
+	balance := balanceExpectedInSpecificPeriodOfLoan(loan, period)
+	newBill := LoanBill{}
 	newBill.LoanID = loanID
-	newBill.State = "ACTIVE"
-	newBill.Period = 1
+	newBill.State = "DEUDA"
+	newBill.Period = uint(period)
 	newBill.BillStartDate = loan.StartDate
 	newBill.BillEndDate = addMothToTimeUtil(newBill.BillStartDate, 1)
-	newBill.InitialBalance = initialBalance
-	newBill.Interest = newBill.InitialBalance.Mul(interestRate).RoundBank(config.Round)
+	newBill.PaymentndDate = newBill.BillEndDate
+	newBill.Payment = balance.Payment.RoundBank(round)
+	newBill.Interest = balance.ToInterest.RoundBank(round)
+	newBill.InterestRate = loan.InterestRatePeriod.RoundBank(round)
+	newBill.Principal = balance.ToPrincipal.RoundBank(round)
 	newBill.DaysLate = 0
-	newBill.InterestForLate = decimal.Zero
-	newBill.Payment = decimal.Zero
-	newBill.ExtraPayment = decimal.Zero
-	newBill.PaymentToPrincipal = decimal.Zero
-	newBill.FinalBalance = decimal.Zero
-	balanceExpected := BalanceExpectedInSpecificPeriodOfLoan(*loan, int(newBill.Period))
-	newBill.FinalBalanceExpected = balanceExpected.FinalBalance.Round(config.Round)
-	newBill.Arrrears = decimal.Zero
-	newBill.AccumulatedArrears = decimal.Zero
+	newBill.FeeLate = decimal.Zero
+	newBill.Paid = decimal.Zero
+	newBill.ExtraPaid = decimal.Zero
+	totalPaid := newBill.Paid.Add(newBill.ExtraPaid)
+	totalDue := newBill.Payment.Add(newBill.FeeLate)
+	newBill.Due = totalDue.Sub(totalPaid).RoundBank(round)
 	newBill.Create()
 
 	return nil
@@ -83,51 +81,34 @@ func RecurringLoanBillingByLoanID(loanID uint) error {
 	if error != nil {
 		return error
 	}
-	var loanBills []LoanBill
-	config.DB.Find(&loanBills, "loan_id = ? AND state = ?", loanID, "ACTIVE")
-	if len(loanBills) != 1 {
-		return &errors.GracefulError{ErrorCode: errors.ToManyBillActives}
-	}
-	oldBill := loanBills[0]
-	endDatePlusFifteen := oldBill.BillEndDate.AddDate(0, 0, 15)
-	//Bill is Fifteen days after las bill payment date
-	if oldBill.BillEndDate.After(endDatePlusFifteen) {
+
+	oldLoanBill := LoanBill{}
+	config.DB.Raw("SELECT * FROM loan_bills WHERE loan_id = ? AND period = (SELECT max(period) FROM loan_bills where loan_id = ?)", loanID, loanID).Scan(&oldLoanBill)
+	now := time.Now().In(oldLoanBill.BillEndDate.Location())
+	if now.Before(oldLoanBill.BillEndDate) {
 		return nil
 	}
-	var dayLast int
-	if !oldBill.Payment.Equal(loan.PaymentAgreed) {
-		_, _, dayLast, _, _, _ = diff(oldBill.BillEndDate, endDatePlusFifteen)
-	}
-
-	/*************/
-	oldBill.State = "CLOSED"
-	oldBill.DaysLate = dayLast
-	totalPaymentLate := loan.PaymentAgreed.Sub(oldBill.Payment).RoundBank(config.Round)
-	annualInterestRatePastDue := financial.EffectiveMonthlyToAnnual(loan.InterestRatePeriod).RoundBank(config.Round)
-	fmt.Println("annualInterestRatePastDue: ", annualInterestRatePastDue)
-	oldBill.InterestForLate = financial.CalculateInterestPastOfDue(annualInterestRatePastDue, totalPaymentLate, dayLast).RoundBank(config.Round)
-	oldBill.FinalBalance = oldBill.InitialBalance.Add(oldBill.Interest).Add(oldBill.InterestForLate).Sub(oldBill.Payment).RoundBank(config.Round)
-	oldBill.Arrrears = oldBill.FinalBalance.Sub(oldBill.FinalBalanceExpected).RoundBank(config.Round)
-	oldBill.Update()
-	/************/
-
-	newBill := &LoanBill{}
+	period := int(oldLoanBill.Period + 1)
+	round := config.Round
+	balance := balanceExpectedInSpecificPeriodOfLoan(loan, period)
+	newBill := LoanBill{}
 	newBill.LoanID = loanID
-	newBill.State = "ACTIVE"
-	newBill.Period = oldBill.Period + 1
-	newBill.BillStartDate = oldBill.BillEndDate
-	newBill.BillEndDate = addMothToTimeUtil(loan.StartDate, 1)
-	newBill.InitialBalance = oldBill.FinalBalance
-	newBill.Interest = newBill.InitialBalance.Mul(loan.InterestRatePeriod).RoundBank(config.Round)
+	newBill.State = "DEUDA"
+	newBill.Period = uint(period)
+	newBill.BillStartDate = oldLoanBill.BillEndDate.AddDate(0, 0, 1)
+	newBill.BillEndDate = addMothToTimeUtil(oldLoanBill.BillStartDate, 1)
+	newBill.PaymentndDate = newBill.BillEndDate
+	newBill.Payment = balance.Payment.RoundBank(round)
+	newBill.Interest = balance.ToInterest.RoundBank(round)
+	newBill.InterestRate = loan.InterestRatePeriod.RoundBank(round)
+	newBill.Principal = balance.ToPrincipal.RoundBank(round)
 	newBill.DaysLate = 0
-	newBill.InterestForLate = decimal.Zero
-	newBill.Payment = decimal.Zero
-	newBill.ExtraPayment = decimal.Zero
-	newBill.FinalBalance = decimal.Zero
-	balanceExpected := BalanceExpectedInSpecificPeriodOfLoan(*loan, int(newBill.Period))
-	newBill.FinalBalanceExpected = balanceExpected.FinalBalance.RoundBank(config.Round)
-	newBill.Arrrears = decimal.Zero
-	newBill.AccumulatedArrears = decimal.Zero
+	newBill.FeeLate = decimal.Zero
+	newBill.Paid = decimal.Zero
+	newBill.ExtraPaid = decimal.Zero
+	totalPaid := newBill.Paid.Add(newBill.ExtraPaid)
+	totalDue := newBill.Payment.Add(newBill.FeeLate)
+	newBill.Due = totalDue.Sub(totalPaid).RoundBank(round)
 	newBill.Create()
 	return nil
 }
