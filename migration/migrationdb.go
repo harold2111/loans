@@ -9,8 +9,8 @@ import (
 
 func MigrateModel(db *gorm.DB) {
 	db.LogMode(true)
-	db.DropTableIfExists(&models.Client{}, &models.Address{}, &models.City{}, &models.Department{}, &models.Country{}, &models.Loan{}, &models.LoanBill{})
-	db.CreateTable(&models.Address{}, &models.Client{}, &models.City{}, &models.Department{}, &models.Country{}, &models.Loan{}, &models.LoanBill{})
+	db.DropTableIfExists(&models.Client{}, &models.Address{}, &models.City{}, &models.Department{}, &models.Country{}, &models.Loan{}, &models.Bill{})
+	db.CreateTable(&models.Address{}, &models.Client{}, &models.City{}, &models.Department{}, &models.Country{}, &models.Loan{}, &models.Bill{})
 
 	db.Model(&models.Client{}).Related(&models.Address{})
 

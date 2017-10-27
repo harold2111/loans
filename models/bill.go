@@ -9,14 +9,14 @@ import (
 	"github.com/shopspring/decimal"
 )
 
-type LoanBill struct {
+type Bill struct {
 	gorm.Model
 	LoanID        uint
 	State         string
 	Period        uint
 	BillStartDate time.Time
 	BillEndDate   time.Time
-	PaymentndDate time.Time
+	PaymentDate   time.Time
 	Payment       decimal.Decimal `gorm:"type:numeric"`
 	InterestRate  decimal.Decimal `gorm:"type:numeric"`
 	Interest      decimal.Decimal `gorm:"type:numeric"`
@@ -28,12 +28,12 @@ type LoanBill struct {
 	Due           decimal.Decimal `gorm:"type:numeric"`
 }
 
-func (loanBill *LoanBill) Create() error {
+func (loanBill *Bill) Create() error {
 	error := config.DB.Create(loanBill).Error
 	return error
 }
 
-func (loanBill *LoanBill) Update() error {
+func (loanBill *Bill) Update() error {
 	error := config.DB.Save(loanBill).Error
 	return error
 }
@@ -43,7 +43,7 @@ func CreateInitialBill(loanID uint) error {
 	if error != nil {
 		return error
 	}
-	var loanBills []LoanBill
+	var loanBills []Bill
 	config.DB.Find(&loanBills, "loan_id = ?", loanID)
 	if len(loanBills) > 0 {
 		return &errors.GracefulError{ErrorCode: errors.BillAlreadyExist}
@@ -52,13 +52,13 @@ func CreateInitialBill(loanID uint) error {
 	period := 1
 	round := config.Round
 	balance := balanceExpectedInSpecificPeriodOfLoan(loan, period)
-	newBill := LoanBill{}
+	newBill := Bill{}
 	newBill.LoanID = loanID
-	newBill.State = "DEUDA"
+	newBill.State = "DUE"
 	newBill.Period = uint(period)
 	newBill.BillStartDate = loan.StartDate
 	newBill.BillEndDate = addMothToTimeUtil(newBill.BillStartDate, 1)
-	newBill.PaymentndDate = newBill.BillEndDate
+	newBill.PaymentDate = newBill.BillEndDate
 	newBill.Payment = balance.Payment.RoundBank(round)
 	newBill.Interest = balance.ToInterest.RoundBank(round)
 	newBill.InterestRate = loan.InterestRatePeriod.RoundBank(round)
@@ -82,8 +82,8 @@ func RecurringLoanBillingByLoanID(loanID uint) error {
 		return error
 	}
 
-	oldLoanBill := LoanBill{}
-	config.DB.Raw("SELECT * FROM loan_bills WHERE loan_id = ? AND period = (SELECT max(period) FROM loan_bills where loan_id = ?)", loanID, loanID).Scan(&oldLoanBill)
+	oldLoanBill := Bill{}
+	config.DB.Raw("SELECT * FROM bills WHERE loan_id = ? AND period = (SELECT max(period) FROM bills where loan_id = ?)", loanID, loanID).Scan(&oldLoanBill)
 	now := time.Now().In(oldLoanBill.BillEndDate.Location())
 	if now.Before(oldLoanBill.BillEndDate) {
 		return nil
@@ -91,13 +91,13 @@ func RecurringLoanBillingByLoanID(loanID uint) error {
 	period := int(oldLoanBill.Period + 1)
 	round := config.Round
 	balance := balanceExpectedInSpecificPeriodOfLoan(loan, period)
-	newBill := LoanBill{}
+	newBill := Bill{}
 	newBill.LoanID = loanID
-	newBill.State = "DEUDA"
+	newBill.State = "DUE"
 	newBill.Period = uint(period)
 	newBill.BillStartDate = oldLoanBill.BillEndDate.AddDate(0, 0, 1)
-	newBill.BillEndDate = addMothToTimeUtil(oldLoanBill.BillStartDate, 1)
-	newBill.PaymentndDate = newBill.BillEndDate
+	newBill.BillEndDate = addMothToTimeUtil(newBill.BillStartDate, 1)
+	newBill.PaymentDate = newBill.BillEndDate
 	newBill.Payment = balance.Payment.RoundBank(round)
 	newBill.Interest = balance.ToInterest.RoundBank(round)
 	newBill.InterestRate = loan.InterestRatePeriod.RoundBank(round)
