@@ -27,6 +27,8 @@ func main() {
 
 	echoContext.POST("/api/loans", controllers.CreateLoan)
 
+	echoContext.POST("/api/loans/payments", controllers.PayLoan)
+
 	echoContext.Logger.Fatal(echoContext.Start(":1323"))
 
 }

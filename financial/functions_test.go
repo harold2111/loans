@@ -45,7 +45,6 @@ func TestEffectiveMonthlyToAnnualExpectedSuccess(t *testing.T) {
 	annualExpected := decimal.NewFromFloat(0.268242)
 	monthly := decimal.NewFromFloat(0.02)
 	annualActual := EffectiveMonthlyToAnnual(monthly).RoundBank(round)
-
 	if !annualActual.Equal(annualExpected) {
 		t.Fatalf("Expected %s but got %s", annualExpected, annualActual)
 	}
@@ -56,7 +55,7 @@ func TestCalculateInterestPastOfDueExpectedSuccess(t *testing.T) {
 	due := decimal.NewFromFloat(5000000)
 	daysLate := 16
 	interestPastDueExpected := decimal.NewFromFloat(66054.644809)
-	interestPastDueActual := CalculateInterestPastOfDue(effectiveAnnualInterestRateForLate, due, daysLate).RoundBank(round)
+	interestPastDueActual := CalculateInterestPastOfDueDIAN(effectiveAnnualInterestRateForLate, due, daysLate).RoundBank(round)
 
 	if !interestPastDueActual.Equal(interestPastDueExpected) {
 		t.Fatalf("Expected %s but got %s", interestPastDueExpected, interestPastDueActual)

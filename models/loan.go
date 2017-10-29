@@ -1,7 +1,6 @@
 package models
 
 import (
-	"fmt"
 	"loans/config"
 	"loans/errors"
 	"loans/financial"
@@ -31,7 +30,6 @@ type Loan struct {
 }
 
 func (loan *Loan) Create() error {
-	//TODO: validate clientID
 	calculatePaymentOfLoan(loan)
 	calculateCloseDateAgreed(loan)
 	loan.State = LoanStateActive
@@ -50,11 +48,6 @@ func (loan *Loan) Create() error {
 	return nil
 }
 
-func calculatePaymentOfLoan(loan *Loan) {
-	loan.PaymentAgreed = financial.CalculatePayment(loan.Principal, loan.InterestRatePeriod, int(loan.PeriodNumbers)).RoundBank(config.Round)
-
-}
-
 func FindLoanByID(loanID uint) (Loan, error) {
 	var loan Loan
 	response := config.DB.First(&loan, loanID)
@@ -69,9 +62,7 @@ func FindLoanByID(loanID uint) (Loan, error) {
 }
 
 func calculateCloseDateAgreed(loan *Loan) {
-	fmt.Println("********************loan.StartDate: ", loan.StartDate)
 	loan.CloseDateAgreed = addMothToTimeUtil(loan.StartDate, int(loan.PeriodNumbers))
-	fmt.Println("********************loan.StartDate: ", loan.StartDate)
 }
 
 func addMothToTimeUtil(startTime time.Time, monthToAdd int) time.Time {
@@ -82,6 +73,11 @@ func addMothToTimeUtil(startTime time.Time, monthToAdd int) time.Time {
 		return endTimeWithLastMothDay
 	}
 	return endTime
+}
+
+func calculatePaymentOfLoan(loan *Loan) {
+	loan.PaymentAgreed = financial.CalculatePayment(loan.Principal, loan.InterestRatePeriod, int(loan.PeriodNumbers)).RoundBank(config.Round)
+
 }
 
 func balanceExpectedInSpecificPeriodOfLoan(loan Loan, period int) financial.Balance {

@@ -1,7 +1,6 @@
 package financial
 
 import (
-	"fmt"
 	"strconv"
 
 	"github.com/shopspring/decimal"
@@ -46,9 +45,13 @@ func BalanceExpectedInSpecificPeriod(principal decimal.Decimal, interestRatePeri
 		FinalBalance:   finalBalance}
 }
 
-func CalculateInterestPastOfDue(effectiveAnnualInterestRate, paymentLate decimal.Decimal, daysLate int) decimal.Decimal {
+func CalculateInterestPastOfDueDIAN(effectiveAnnualInterestRate, paymentLate decimal.Decimal, daysLate int) decimal.Decimal {
 	dailyInterest := effectiveAnnualInterestRate.Div(decimal.NewFromFloat(366))
-	fmt.Println("dailyInterest", dailyInterest)
+	return paymentLate.Mul(dailyInterest).Mul(decimal.NewFromFloat(float64(daysLate)))
+}
+
+func FeeLateWithPeriodInterest(periodInteres, paymentLate decimal.Decimal, daysLate int) decimal.Decimal {
+	dailyInterest := periodInteres.Div(decimal.NewFromFloat(30))
 	return paymentLate.Mul(dailyInterest).Mul(decimal.NewFromFloat(float64(daysLate)))
 }
 
