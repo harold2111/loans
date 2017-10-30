@@ -1,7 +1,6 @@
 package models
 
 import (
-	"fmt"
 	"loans/config"
 	"loans/errors"
 	"loans/financial"
@@ -25,9 +24,9 @@ type Bill struct {
 	State               string
 	PeriodStatus        string
 	Period              uint
-	BillStartDate       time.Time       `gorm:"type:timestamp without time zone"`
-	BillEndDate         time.Time       `gorm:"type:timestamp without time zone"`
-	PaymentDate         time.Time       `gorm:"type:timestamp without time zone"`
+	BillStartDate       time.Time
+	BillEndDate         time.Time
+	PaymentDate         time.Time
 	Payment             decimal.Decimal `gorm:"type:numeric"`
 	InterestRate        decimal.Decimal `gorm:"type:numeric"`
 	InterestOfPayment   decimal.Decimal `gorm:"type:numeric"`
@@ -38,7 +37,7 @@ type Bill struct {
 	PaymentDue          decimal.Decimal `gorm:"type:numeric"`
 	TotalDue            decimal.Decimal `gorm:"type:numeric"`
 	PaidToPrincipal     decimal.Decimal `gorm:"type:numeric"`
-	LastLiquidationDate time.Time       `gorm:"type:timestamp without time zone"`
+	LastLiquidationDate time.Time
 }
 
 func (loanBill *Bill) Create() error {
@@ -89,7 +88,7 @@ func CreateInitialBill(loanID uint) error {
 	newBill.PeriodStatus = PeriodStatusOpen
 	newBill.Period = uint(period)
 	newBill.BillStartDate = loan.StartDate
-	newBill.BillEndDate = utils.AddMothToTimeUtil(newBill.BillStartDate, 1)
+	newBill.BillEndDate = utils.AddMothToTimeForPayment(newBill.BillStartDate, 1)
 	newBill.PaymentDate = newBill.BillEndDate
 	newBill.Payment = balance.Payment.RoundBank(round)
 	newBill.InterestOfPayment = balance.ToInterest.RoundBank(round)
@@ -117,7 +116,7 @@ func RecurringLoanBillingByLoanID(loanID uint) error {
 	if error != nil {
 		return error
 	}
-	now := time.Now().In(oldLoanBill.BillEndDate.Location())
+	now := time.Now()
 	if now.Before(oldLoanBill.BillEndDate) {
 		return nil
 	}
@@ -130,7 +129,7 @@ func RecurringLoanBillingByLoanID(loanID uint) error {
 	newBill.PeriodStatus = PeriodStatusOpen
 	newBill.Period = uint(period)
 	newBill.BillStartDate = oldLoanBill.BillEndDate.AddDate(0, 0, 1)
-	newBill.BillEndDate = utils.AddMothToTimeUtil(newBill.BillStartDate, 1)
+	newBill.BillEndDate = utils.AddMothToTimeForPayment(oldLoanBill.BillEndDate, 1)
 	newBill.PaymentDate = newBill.BillEndDate
 	newBill.Payment = balance.Payment.RoundBank(round)
 	newBill.InterestOfPayment = balance.ToInterest.RoundBank(round)
@@ -149,18 +148,8 @@ func RecurringLoanBillingByLoanID(loanID uint) error {
 }
 
 func (bill *Bill) LiquidateBill() {
-	fmt.Println("time.Now():", time.Now())
-	location, _ := time.LoadLocation(config.DefaultLocation)
-	fmt.Println("bill.LastLiquidationDate:", bill.LastLiquidationDate)
-	fmt.Println("bill.LastLiquidationDate.IN:", bill.LastLiquidationDate.In(location))
 	now := time.Now()
-	daysLate := 0
-	if now.After(bill.PaymentDate) {
-		daysLate = utils.DaysSince(bill.LastLiquidationDate)
-		if daysLate < 0 {
-			daysLate = 0
-		}
-	}
+	daysLate := calculateDaysLate(bill.PaymentDate, bill.LastLiquidationDate)
 	feeLatePeriod := financial.FeeLateWithPeriodInterest(bill.InterestRate, bill.PaymentDue, daysLate).RoundBank(config.Round)
 	totalFeeLateDue := bill.FeeLateDue.Add(feeLatePeriod).RoundBank(config.Round)
 	totalDue := bill.PaymentDue.Add(totalFeeLateDue).RoundBank(config.Round)
@@ -192,4 +181,16 @@ func (bill *Bill) ApplyPayment(paymentToBill decimal.Decimal) {
 	if bill.TotalDue.LessThanOrEqual(decimal.Zero) {
 		bill.State = BillStatePaid
 	}
+}
+
+func calculateDaysLate(paymentDate, lastLiquidationDate time.Time) int {
+	now := time.Now()
+	daysLate := 0
+	if now.After(paymentDate) {
+		daysLate = utils.DaysBetween(lastLiquidationDate, now)
+		if daysLate < 0 {
+			daysLate = 0
+		}
+	}
+	return daysLate
 }

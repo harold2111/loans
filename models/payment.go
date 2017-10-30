@@ -18,7 +18,7 @@ func PayLoan(loanID uint, payment decimal.Decimal) error {
 		}
 		billMovement := new(BillMovement)
 		bill.LiquidateBill()
-		billMovement.fillInitalBillMovementFromBill(bill)
+		billMovement.fillInitialBillMovementFromBill(bill)
 
 		paymentToBill := decimal.Zero
 		if remainingPayment.LessThanOrEqual(bill.TotalDue) || len(billsWithDue) == (index+1) {

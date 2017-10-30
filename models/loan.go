@@ -22,9 +22,9 @@ type Loan struct {
 	InterestRatePeriod decimal.Decimal `gorm:"type:numeric"`
 	PeriodNumbers      uint
 	PaymentAgreed      decimal.Decimal `gorm:"type:numeric"`
-	StartDate          time.Time       `gorm:"type:timestamp without time zone"`
-	CloseDateAgreed    time.Time       `gorm:"type:timestamp without time zone"`
-	CloseDate          *time.Time      `gorm:"type:timestamp without time zone"`
+	StartDate          time.Time
+	CloseDateAgreed    time.Time
+	CloseDate          *time.Time
 	State              string
 	Client             Client
 	ClientID           uint `gorm:"not null"`
@@ -63,7 +63,7 @@ func FindLoanByID(loanID uint) (Loan, error) {
 }
 
 func calculateCloseDateAgreed(loan *Loan) {
-	loan.CloseDateAgreed = utils.AddMothToTimeUtil(loan.StartDate, int(loan.PeriodNumbers))
+	loan.CloseDateAgreed = utils.AddMothToTimeForPayment(loan.StartDate, int(loan.PeriodNumbers))
 }
 
 func calculatePaymentOfLoan(loan *Loan) {

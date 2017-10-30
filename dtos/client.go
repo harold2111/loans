@@ -19,7 +19,7 @@ type UpdateClient struct {
 }
 
 //Response
-type ClientReponse struct {
+type ClientResponse struct {
 	ID uint `json:"id"`
 	ClientCommonFields
 	Addresses []AddressResponse `json:"addresses" validate:"required,dive"`

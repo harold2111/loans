@@ -26,7 +26,7 @@ func CreateClient(context echo.Context) error {
 	if error := client.Create(); error != nil {
 		return error
 	}
-	response := new(dtos.ClientReponse)
+	response := new(dtos.ClientResponse)
 	if error := copier.Copy(&response, &client); error != nil {
 		return error
 	}
@@ -50,7 +50,7 @@ func UpdateClient(context echo.Context) error {
 	if error := client.Update(); error != nil {
 		return error
 	}
-	response := new(dtos.ClientReponse)
+	response := new(dtos.ClientResponse)
 	if error := copier.Copy(&response, &client); error != nil {
 		return error
 	}

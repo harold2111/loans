@@ -11,7 +11,7 @@ import (
 type BillMovement struct {
 	gorm.Model
 	BillID                 uint
-	MovementDate           time.Time       `gorm:"type:timestamp without time zone"`
+	MovementDate           time.Time
 	InitialPaymentDue      decimal.Decimal `gorm:"type:numeric"`
 	InitialFeeLateDue      decimal.Decimal `gorm:"type:numeric"`
 	InitialPaidToPrincipal decimal.Decimal `gorm:"type:numeric"`
@@ -31,7 +31,7 @@ func (billMovement *BillMovement) Create() error {
 	return error
 }
 
-func (billMovement *BillMovement) fillInitalBillMovementFromBill(bill Bill) {
+func (billMovement *BillMovement) fillInitialBillMovementFromBill(bill Bill) {
 	billMovement.BillID = bill.ID
 	billMovement.MovementDate = bill.LastLiquidationDate
 	billMovement.InitialPaymentDue = bill.PaymentDue
