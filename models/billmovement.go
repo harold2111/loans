@@ -11,18 +11,18 @@ import (
 type BillMovement struct {
 	gorm.Model
 	BillID                 uint
-	MovementDate           time.Time
+	MovementDate           time.Time       `gorm:"type:timestamp without time zone"`
 	InitialPaymentDue      decimal.Decimal `gorm:"type:numeric"`
 	InitialFeeLateDue      decimal.Decimal `gorm:"type:numeric"`
-	InitialDue             decimal.Decimal `gorm:"type:numeric"`
 	InitialPaidToPrincipal decimal.Decimal `gorm:"type:numeric"`
+	InitialDue             decimal.Decimal `gorm:"type:numeric"`
 	Paid                   decimal.Decimal `gorm:"type:numeric"`
 	DaysLate               int
 	PaidToPaymentDue       decimal.Decimal `gorm:"type:numeric"`
 	PaidToFeeLate          decimal.Decimal `gorm:"type:numeric"`
+	PaidToPrincipal        decimal.Decimal `gorm:"type:numeric"`
 	FinalPaymentDue        decimal.Decimal `gorm:"type:numeric"`
 	FinalFeeLateDue        decimal.Decimal `gorm:"type:numeric"`
-	PaidToPrincipal        decimal.Decimal `gorm:"type:numeric"`
 	FinalDue               decimal.Decimal `gorm:"type:numeric"`
 }
 

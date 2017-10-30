@@ -4,6 +4,7 @@ import (
 	"loans/config"
 	"loans/errors"
 	"loans/financial"
+	"loans/utils"
 	"time"
 
 	"github.com/shopspring/decimal"
@@ -21,9 +22,9 @@ type Loan struct {
 	InterestRatePeriod decimal.Decimal `gorm:"type:numeric"`
 	PeriodNumbers      uint
 	PaymentAgreed      decimal.Decimal `gorm:"type:numeric"`
-	StartDate          time.Time
-	CloseDateAgreed    time.Time
-	CloseDate          *time.Time
+	StartDate          time.Time       `gorm:"type:timestamp without time zone"`
+	CloseDateAgreed    time.Time       `gorm:"type:timestamp without time zone"`
+	CloseDate          *time.Time      `gorm:"type:timestamp without time zone"`
 	State              string
 	Client             Client
 	ClientID           uint `gorm:"not null"`
@@ -62,17 +63,7 @@ func FindLoanByID(loanID uint) (Loan, error) {
 }
 
 func calculateCloseDateAgreed(loan *Loan) {
-	loan.CloseDateAgreed = addMothToTimeUtil(loan.StartDate, int(loan.PeriodNumbers))
-}
-
-func addMothToTimeUtil(startTime time.Time, monthToAdd int) time.Time {
-	endTime := startTime.AddDate(0, monthToAdd, 0)
-	endTimeWithLastMothDay := time.Date(endTime.Year(), endTime.Month(), 0,
-		endTime.Hour(), endTime.Minute(), endTime.Second(), endTime.Nanosecond(), endTime.Location())
-	if startTime.Day() > endTimeWithLastMothDay.Day() {
-		return endTimeWithLastMothDay
-	}
-	return endTime
+	loan.CloseDateAgreed = utils.AddMothToTimeUtil(loan.StartDate, int(loan.PeriodNumbers))
 }
 
 func calculatePaymentOfLoan(loan *Loan) {

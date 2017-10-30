@@ -37,25 +37,3 @@ func PayLoan(loanID uint, payment decimal.Decimal) error {
 	return nil
 
 }
-
-func (bill *Bill) ApplyPayment(paymentToBill decimal.Decimal) {
-	//the payment NO covers all the fee late
-	if paymentToBill.LessThanOrEqual(bill.FeeLateDue) {
-		bill.FeeLateDue = bill.FeeLateDue.Sub(paymentToBill)
-	} else { //the payment covers fee late
-		remainingPaymentToBill := paymentToBill.Sub(bill.FeeLateDue)
-		bill.FeeLateDue = decimal.Zero
-		paymentDue := bill.PaymentDue.Sub(remainingPaymentToBill).RoundBank(config.Round)
-		if paymentDue.LessThanOrEqual(decimal.Zero) {
-			bill.PaidToPrincipal = bill.PaidToPrincipal.Add(paymentDue.Abs()).RoundBank(config.Round)
-			bill.PaymentDue = decimal.Zero
-		} else {
-			bill.PaymentDue = paymentDue
-		}
-	}
-	bill.TotalDue = bill.PaymentDue.Add(bill.FeeLateDue).RoundBank(config.Round)
-	bill.Paid = bill.Paid.Add(paymentToBill)
-	if bill.TotalDue.LessThanOrEqual(decimal.Zero) {
-		bill.State = BillStatePaid
-	}
-}

@@ -14,6 +14,8 @@ import (
 
 func main() {
 
+	time.LoadLocation("UTC")
+
 	validators.InitValidator()
 	config.InitDB("host=localhost user=postgres dbname=loans sslmode=disable password=Nayarin1214")
 	migration.MigrateModel(config.DB)
