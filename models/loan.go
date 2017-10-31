@@ -36,12 +36,9 @@ func (loan *Loan) Create() error {
 	calculatePaymentOfLoan(loan)
 	calculateCloseDateAgreed(loan)
 	if error := config.DB.Create(loan).Error; error != nil {
-		return nil
+		return error
 	}
 	if error := CreateInitialBill(loan.ID); error != nil {
-		return nil
-	}
-	if error := RecurringLoanBillingByLoanID(loan.ID); error != nil {
 		return nil
 	}
 	if error := RecurringLoanBillingByLoanID(loan.ID); error != nil {

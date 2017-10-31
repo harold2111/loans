@@ -119,7 +119,7 @@ func RecurringLoanBillingByLoanID(loanID uint) error {
 	if error := oldBill.ClosePeriod(); error != nil {
 		return error
 	}
-	return nil
+	return RecurringLoanBillingByLoanID(loanID)
 }
 
 func fillDefaultAmoundValues(bill *Bill, loan Loan, period int) {
