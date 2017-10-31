@@ -31,9 +31,10 @@ type Loan struct {
 }
 
 func (loan *Loan) Create() error {
+	loan.State = LoanStateActive
+	loan.StartDate = loan.StartDate.In(config.DefaultLocation())
 	calculatePaymentOfLoan(loan)
 	calculateCloseDateAgreed(loan)
-	loan.State = LoanStateActive
 	if error := config.DB.Create(loan).Error; error != nil {
 		return nil
 	}

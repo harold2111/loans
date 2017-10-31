@@ -40,14 +40,19 @@ type Bill struct {
 	LastLiquidationDate time.Time
 }
 
-func (loanBill *Bill) Create() error {
-	error := config.DB.Create(loanBill).Error
+func (bill *Bill) Create() error {
+	error := config.DB.Create(bill).Error
 	return error
 }
 
-func (loanBill *Bill) Update() error {
-	error := config.DB.Save(loanBill).Error
+func (bill *Bill) Update() error {
+	error := config.DB.Save(bill).Error
 	return error
+}
+
+func (bill *Bill) ClosePeriod() error {
+	bill.PeriodStatus = PeriodStatusClosed
+	return bill.Update()
 }
 
 func FindBillsByLoanID(loanID uint) ([]Bill, error) {
@@ -62,11 +67,11 @@ func FindBillsWithDueOrOpenOrderedByPeriodAsc(loanID uint) ([]Bill, error) {
 	return bills, nil
 }
 
-func FindBillOpenPeriodByLoanID(loanID uint) (*Bill, error) {
+func FindBillOpenPeriodByLoanID(loanID uint) (Bill, error) {
 	bill := Bill{}
 	error := config.DB.Raw("SELECT * FROM bills WHERE loan_id = ? AND period_status = ? AND period = (SELECT max(period) FROM bills where loan_id = ?)",
 		loanID, PeriodStatusOpen, loanID).Scan(&bill).Error
-	return &bill, error
+	return bill, error
 }
 
 func CreateInitialBill(loanID uint) error {
@@ -80,30 +85,13 @@ func CreateInitialBill(loanID uint) error {
 	}
 
 	period := 1
-	round := config.Round
-	balance := balanceExpectedInSpecificPeriodOfLoan(loan, period)
 	newBill := Bill{}
-	newBill.LoanID = loanID
-	newBill.State = BillStateDue
-	newBill.PeriodStatus = PeriodStatusOpen
-	newBill.Period = uint(period)
 	newBill.BillStartDate = loan.StartDate
 	newBill.BillEndDate = utils.AddMothToTimeForPayment(newBill.BillStartDate, 1)
-	newBill.PaymentDate = newBill.BillEndDate
-	newBill.Payment = balance.Payment.RoundBank(round)
-	newBill.InterestOfPayment = balance.ToInterest.RoundBank(round)
-	newBill.InterestRate = loan.InterestRatePeriod.RoundBank(round)
-	newBill.PrincipalOfPayment = balance.ToPrincipal.RoundBank(round)
-	newBill.Paid = decimal.Zero
-	newBill.DaysLate = 0
-	newBill.FeeLateDue = decimal.Zero
-	newBill.PaymentDue = newBill.Payment
-	newBill.TotalDue = newBill.Payment
-	newBill.LastLiquidationDate = newBill.PaymentDate
+	fillDefaultAmoundValues(&newBill, loan, period)
 	newBill.Create()
 
 	return nil
-
 }
 
 func RecurringLoanBillingByLoanID(loanID uint) error {
@@ -111,40 +99,47 @@ func RecurringLoanBillingByLoanID(loanID uint) error {
 	if error != nil {
 		return error
 	}
-	oldLoanBill := new(Bill)
-	oldLoanBill, error = FindBillOpenPeriodByLoanID(loanID)
+	oldBill := Bill{}
+	oldBill, error = FindBillOpenPeriodByLoanID(loanID)
 	if error != nil {
 		return error
 	}
-	now := time.Now()
-	if now.Before(oldLoanBill.BillEndDate) {
+	if time.Now().Before(oldBill.BillEndDate) {
 		return nil
 	}
-	period := int(oldLoanBill.Period + 1)
+	period := int(oldBill.Period + 1)
+	newBill := Bill{}
+	newBill.BillStartDate = oldBill.BillEndDate.AddDate(0, 0, 1)
+	newBill.BillEndDate = utils.AddMothToTimeForPayment(oldBill.BillEndDate, 1)
+	fillDefaultAmoundValues(&newBill, loan, period)
+
+	if error := newBill.Create(); error != nil {
+		return error
+	}
+	if error := oldBill.ClosePeriod(); error != nil {
+		return error
+	}
+	return nil
+}
+
+func fillDefaultAmoundValues(bill *Bill, loan Loan, period int) {
 	round := config.Round
 	balance := balanceExpectedInSpecificPeriodOfLoan(loan, period)
-	newBill := Bill{}
-	newBill.LoanID = loanID
-	newBill.State = BillStateDue
-	newBill.PeriodStatus = PeriodStatusOpen
-	newBill.Period = uint(period)
-	newBill.BillStartDate = oldLoanBill.BillEndDate.AddDate(0, 0, 1)
-	newBill.BillEndDate = utils.AddMothToTimeForPayment(oldLoanBill.BillEndDate, 1)
-	newBill.PaymentDate = newBill.BillEndDate
-	newBill.Payment = balance.Payment.RoundBank(round)
-	newBill.InterestOfPayment = balance.ToInterest.RoundBank(round)
-	newBill.InterestRate = loan.InterestRatePeriod.RoundBank(round)
-	newBill.PrincipalOfPayment = balance.ToPrincipal.RoundBank(round)
-	newBill.Paid = decimal.Zero
-	newBill.DaysLate = 0
-	newBill.FeeLateDue = decimal.Zero
-	newBill.PaymentDue = newBill.Payment
-	newBill.TotalDue = newBill.Payment
-	newBill.LastLiquidationDate = newBill.PaymentDate
-	newBill.Create()
-	oldLoanBill.PeriodStatus = PeriodStatusClosed
-	oldLoanBill.Update()
-	return nil
+	bill.LoanID = loan.ID
+	bill.State = BillStateDue
+	bill.Period = uint(period)
+	bill.PeriodStatus = PeriodStatusOpen
+	bill.PaymentDate = bill.BillEndDate
+	bill.Payment = balance.Payment.RoundBank(round)
+	bill.InterestOfPayment = balance.ToInterest.RoundBank(round)
+	bill.InterestRate = loan.InterestRatePeriod.RoundBank(round)
+	bill.PrincipalOfPayment = balance.ToPrincipal.RoundBank(round)
+	bill.Paid = decimal.Zero
+	bill.DaysLate = 0
+	bill.FeeLateDue = decimal.Zero
+	bill.PaymentDue = bill.Payment
+	bill.TotalDue = bill.Payment
+	bill.LastLiquidationDate = bill.PaymentDate
 }
 
 func (bill *Bill) LiquidateBill() {

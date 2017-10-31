@@ -2,7 +2,7 @@ package config
 
 import "time"
 
-func BogotaLocation() *time.Location {
+func DefaultLocation() *time.Location {
 	bogotaLocation, _ := time.LoadLocation("America/Bogota")
 	return bogotaLocation
 }

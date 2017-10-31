@@ -14,7 +14,7 @@ import (
 
 func main() {
 
-	time.Local = config.BogotaLocation()
+	time.Local = config.DefaultLocation()
 
 	validators.InitValidator()
 	config.InitDB("host=localhost user=postgres dbname=loans sslmode=disable password=Nayarin1214")
