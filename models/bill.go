@@ -88,7 +88,7 @@ func CreateInitialBill(loanID uint) error {
 	newBill := Bill{}
 	newBill.BillStartDate = loan.StartDate
 	newBill.BillEndDate = utils.AddMothToTimeForPayment(newBill.BillStartDate, 1)
-	fillDefaultAmoundValues(&newBill, loan, period)
+	fillDefaultAmountValues(&newBill, loan, period)
 	newBill.Create()
 
 	return nil
@@ -111,7 +111,7 @@ func RecurringLoanBillingByLoanID(loanID uint) error {
 	newBill := Bill{}
 	newBill.BillStartDate = oldBill.BillEndDate.AddDate(0, 0, 1)
 	newBill.BillEndDate = utils.AddMothToTimeForPayment(oldBill.BillEndDate, 1)
-	fillDefaultAmoundValues(&newBill, loan, period)
+	fillDefaultAmountValues(&newBill, loan, period)
 
 	if error := newBill.Create(); error != nil {
 		return error
@@ -122,7 +122,7 @@ func RecurringLoanBillingByLoanID(loanID uint) error {
 	return RecurringLoanBillingByLoanID(loanID)
 }
 
-func fillDefaultAmoundValues(bill *Bill, loan Loan, period int) {
+func fillDefaultAmountValues(bill *Bill, loan Loan, period int) {
 	round := config.Round
 	balance := balanceExpectedInSpecificPeriodOfLoan(loan, period)
 	bill.LoanID = loan.ID
