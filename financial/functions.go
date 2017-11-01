@@ -24,25 +24,32 @@ func CalculatePayment(principal decimal.Decimal, interestRatePeriod decimal.Deci
 
 func BalanceExpectedInSpecificPeriod(principal decimal.Decimal, interestRatePeriod decimal.Decimal, periodNumbers int, specificPeriod int) Balance {
 	payment := CalculatePayment(principal, interestRatePeriod, periodNumbers)
-	initialBalance := principal
-	toInterest := decimal.Zero
-	toPrincipal := decimal.Zero
-	finalBalance := decimal.Zero
-	for period := 0; period < specificPeriod; period++ {
-		if period > 0 {
-			initialBalance = finalBalance
-		}
-		toInterest = initialBalance.Mul(interestRatePeriod)
-		toPrincipal = payment.Sub(toInterest)
-		finalBalance = initialBalance.Sub(toPrincipal)
-
+	initialBalance := Balance{}
+	initialBalance.InitialPrincipal = principal
+	initialBalance.Payment = payment
+	initialBalance.InterestRatePeriod = interestRatePeriod
+	initialBalance.calculateAmountBalance()
+	finalBalance := initialBalance
+	for period := 1; period < specificPeriod; period++ {
+		finalBalance = NextBalanceFromBefore(initialBalance)
+		initialBalance = finalBalance
 	}
-	return Balance{
-		Payment:        payment,
-		InitialBalance: initialBalance,
-		ToInterest:     toInterest,
-		ToPrincipal:    toPrincipal,
-		FinalBalance:   finalBalance}
+	return finalBalance
+}
+
+func NextBalanceFromBefore(beforeBalance Balance) Balance {
+	nextBalance := Balance{}
+	nextBalance.InitialPrincipal = beforeBalance.FinalPrincipal
+	nextBalance.Payment = beforeBalance.Payment
+	nextBalance.InterestRatePeriod = beforeBalance.InterestRatePeriod
+	nextBalance.calculateAmountBalance()
+	return nextBalance
+}
+
+func (balance *Balance) calculateAmountBalance() {
+	balance.ToInterest = balance.InitialPrincipal.Mul(balance.InterestRatePeriod)
+	balance.ToPrincipal = balance.Payment.Sub(balance.ToInterest)
+	balance.FinalPrincipal = balance.InitialPrincipal.Sub(balance.ToPrincipal)
 }
 
 func CalculateInterestPastOfDueDIAN(effectiveAnnualInterestRate, paymentLate decimal.Decimal, daysLate int) decimal.Decimal {

@@ -27,6 +27,7 @@ type Bill struct {
 	BillStartDate       time.Time
 	BillEndDate         time.Time
 	PaymentDate         time.Time
+	InitialPrincipal    decimal.Decimal `gorm:"type:numeric"`
 	Payment             decimal.Decimal `gorm:"type:numeric"`
 	InterestRate        decimal.Decimal `gorm:"type:numeric"`
 	InterestOfPayment   decimal.Decimal `gorm:"type:numeric"`
@@ -37,6 +38,7 @@ type Bill struct {
 	PaymentDue          decimal.Decimal `gorm:"type:numeric"`
 	TotalDue            decimal.Decimal `gorm:"type:numeric"`
 	PaidToPrincipal     decimal.Decimal `gorm:"type:numeric"`
+	FinalPrincipal      decimal.Decimal `gorm:"type:numeric"`
 	LastLiquidationDate time.Time
 }
 
@@ -83,12 +85,14 @@ func CreateInitialBill(loanID uint) error {
 	if len(bills) > 0 {
 		return &errors.GracefulError{ErrorCode: errors.BillAlreadyExist}
 	}
-
 	period := 1
 	newBill := Bill{}
+	newBill.LoanID = loan.ID
+	newBill.Period = uint(period)
 	newBill.BillStartDate = loan.StartDate
 	newBill.BillEndDate = utils.AddMothToTimeForPayment(newBill.BillStartDate, 1)
-	fillDefaultAmountValues(&newBill, loan, period)
+	balancePeriod := balanceExpectedInSpecificPeriodOfLoan(loan, period)
+	fillDefaultAmountValues(&newBill, balancePeriod)
 	newBill.Create()
 
 	return nil
@@ -109,10 +113,12 @@ func RecurringLoanBillingByLoanID(loanID uint) error {
 	}
 	period := int(oldBill.Period + 1)
 	newBill := Bill{}
+	newBill.LoanID = loan.ID
+	newBill.Period = uint(period)
 	newBill.BillStartDate = oldBill.BillEndDate.AddDate(0, 0, 1)
 	newBill.BillEndDate = utils.AddMothToTimeForPayment(oldBill.BillEndDate, 1)
-	fillDefaultAmountValues(&newBill, loan, period)
-
+	nextBalance := nextBalanceFromBill(oldBill)
+	fillDefaultAmountValues(&newBill, nextBalance)
 	if error := newBill.Create(); error != nil {
 		return error
 	}
@@ -122,17 +128,25 @@ func RecurringLoanBillingByLoanID(loanID uint) error {
 	return RecurringLoanBillingByLoanID(loanID)
 }
 
-func fillDefaultAmountValues(bill *Bill, loan Loan, period int) {
+func nextBalanceFromBill(bill Bill) financial.Balance {
+	balance := financial.Balance{}
+	balance.InitialPrincipal = bill.InitialPrincipal
+	balance.Payment = bill.Payment
+	balance.InterestRatePeriod = bill.InterestRate
+	balance.ToInterest = bill.InterestOfPayment
+	balance.ToPrincipal = bill.PrincipalOfPayment
+	balance.FinalPrincipal = bill.FinalPrincipal
+	return financial.NextBalanceFromBefore(balance)
+}
+
+func fillDefaultAmountValues(bill *Bill, balance financial.Balance) {
 	round := config.Round
-	balance := balanceExpectedInSpecificPeriodOfLoan(loan, period)
-	bill.LoanID = loan.ID
 	bill.State = BillStateDue
-	bill.Period = uint(period)
 	bill.PeriodStatus = PeriodStatusOpen
 	bill.PaymentDate = bill.BillEndDate
 	bill.Payment = balance.Payment.RoundBank(round)
 	bill.InterestOfPayment = balance.ToInterest.RoundBank(round)
-	bill.InterestRate = loan.InterestRatePeriod.RoundBank(round)
+	bill.InterestRate = balance.InterestRatePeriod.RoundBank(round)
 	bill.PrincipalOfPayment = balance.ToPrincipal.RoundBank(round)
 	bill.Paid = decimal.Zero
 	bill.DaysLate = 0

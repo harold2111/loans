@@ -29,7 +29,7 @@ func TestBalanceExpectedInSpecificPeriodExpectedSuccess(t *testing.T) {
 	balance := BalanceExpectedInSpecificPeriod(principal, interestRatePeriod, periodNumbers, specificPeriod)
 
 	balanceExpected := decimal.NewFromFloat(1839410.545684)
-	balanceActual := balance.FinalBalance.RoundBank(round)
+	balanceActual := balance.FinalPrincipal.RoundBank(round)
 	if !balanceActual.Equal(balanceExpected) {
 		t.Fatalf("Expected %s but got %s", balanceExpected, balanceActual)
 	}

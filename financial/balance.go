@@ -5,9 +5,10 @@ import (
 )
 
 type Balance struct {
-	Payment        decimal.Decimal
-	InitialBalance decimal.Decimal
-	ToInterest     decimal.Decimal
-	ToPrincipal    decimal.Decimal
-	FinalBalance   decimal.Decimal
+	InitialPrincipal   decimal.Decimal
+	Payment            decimal.Decimal
+	InterestRatePeriod decimal.Decimal
+	ToInterest         decimal.Decimal
+	ToPrincipal        decimal.Decimal
+	FinalPrincipal     decimal.Decimal
 }
