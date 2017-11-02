@@ -1,6 +1,7 @@
 package models
 
 import (
+	"fmt"
 	"loans/config"
 	"loans/errors"
 	"loans/financial"
@@ -140,10 +141,12 @@ func nextBalanceFromBill(bill Bill) financial.Balance {
 }
 
 func fillDefaultAmountValues(bill *Bill, balance financial.Balance) {
+	fmt.Println("balancePeriod:", balance)
 	round := config.Round
 	bill.State = BillStateDue
 	bill.PeriodStatus = PeriodStatusOpen
 	bill.PaymentDate = bill.BillEndDate
+	bill.InitialPrincipal = balance.InitialPrincipal
 	bill.Payment = balance.Payment.RoundBank(round)
 	bill.InterestOfPayment = balance.ToInterest.RoundBank(round)
 	bill.InterestRate = balance.InterestRatePeriod.RoundBank(round)
@@ -153,6 +156,7 @@ func fillDefaultAmountValues(bill *Bill, balance financial.Balance) {
 	bill.FeeLateDue = decimal.Zero
 	bill.PaymentDue = bill.Payment
 	bill.TotalDue = bill.Payment
+	bill.FinalPrincipal = balance.FinalPrincipal.RoundBank(round)
 	bill.LastLiquidationDate = bill.PaymentDate
 }
 
@@ -180,6 +184,7 @@ func (bill *Bill) ApplyPayment(paymentToBill decimal.Decimal) {
 		paymentDue := bill.PaymentDue.Sub(remainingPaymentToBill).RoundBank(config.Round)
 		if paymentDue.LessThanOrEqual(decimal.Zero) {
 			bill.PaidToPrincipal = bill.PaidToPrincipal.Add(paymentDue.Abs()).RoundBank(config.Round)
+			bill.FinalPrincipal = bill.FinalPrincipal.Sub(bill.PaidToPrincipal).RoundBank(config.Round)
 			bill.PaymentDue = decimal.Zero
 		} else {
 			bill.PaymentDue = paymentDue
