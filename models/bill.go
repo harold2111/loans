@@ -1,7 +1,6 @@
 package models
 
 import (
-	"fmt"
 	"loans/config"
 	"loans/errors"
 	"loans/financial"
@@ -141,7 +140,6 @@ func nextBalanceFromBill(bill Bill) financial.Balance {
 }
 
 func fillDefaultAmountValues(bill *Bill, balance financial.Balance) {
-	fmt.Println("balancePeriod:", balance)
 	round := config.Round
 	bill.State = BillStateDue
 	bill.PeriodStatus = PeriodStatusOpen
@@ -160,9 +158,8 @@ func fillDefaultAmountValues(bill *Bill, balance financial.Balance) {
 	bill.LastLiquidationDate = bill.PaymentDate
 }
 
-func (bill *Bill) LiquidateBill() {
-	now := time.Now()
-	daysLate := calculateDaysLate(bill.PaymentDate, bill.LastLiquidationDate)
+func (bill *Bill) LiquidateBill(liquidationDate time.Time) {
+	daysLate := calculateDaysLate(bill.LastLiquidationDate, liquidationDate)
 	feeLatePeriod := financial.FeeLateWithPeriodInterest(bill.InterestRate, bill.PaymentDue, daysLate).RoundBank(config.Round)
 	totalFeeLateDue := bill.FeeLateDue.Add(feeLatePeriod).RoundBank(config.Round)
 	totalDue := bill.PaymentDue.Add(totalFeeLateDue).RoundBank(config.Round)
@@ -171,7 +168,7 @@ func (bill *Bill) LiquidateBill() {
 	bill.DaysLate = totalDaysLate
 	bill.FeeLateDue = totalFeeLateDue
 	bill.TotalDue = totalDue
-	bill.LastLiquidationDate = now
+	bill.LastLiquidationDate = liquidationDate
 }
 
 func (bill *Bill) ApplyPayment(paymentToBill decimal.Decimal) {
@@ -197,11 +194,10 @@ func (bill *Bill) ApplyPayment(paymentToBill decimal.Decimal) {
 	}
 }
 
-func calculateDaysLate(paymentDate, lastLiquidationDate time.Time) int {
-	now := time.Now()
+func calculateDaysLate(lastLiquidationDate, liquidationDate time.Time) int {
 	daysLate := 0
-	if now.After(paymentDate) {
-		daysLate = utils.DaysBetween(lastLiquidationDate, now)
+	if liquidationDate.After(lastLiquidationDate) {
+		daysLate = utils.DaysBetween(lastLiquidationDate, liquidationDate)
 		if daysLate < 0 {
 			daysLate = 0
 		}

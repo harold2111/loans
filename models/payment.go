@@ -2,11 +2,12 @@ package models
 
 import (
 	"loans/config"
+	"time"
 
 	"github.com/shopspring/decimal"
 )
 
-func PayLoan(loanID uint, payment decimal.Decimal) error {
+func PayLoan(loanID uint, payment decimal.Decimal, paymentDate time.Time) error {
 	billsWithDue, error := FindBillsWithDueOrOpenOrderedByPeriodAsc(loanID)
 	if error != nil {
 		return error
@@ -17,7 +18,7 @@ func PayLoan(loanID uint, payment decimal.Decimal) error {
 			break
 		}
 		billMovement := new(BillMovement)
-		bill.LiquidateBill()
+		bill.LiquidateBill(paymentDate)
 		billMovement.fillInitialBillMovementFromBill(bill)
 
 		paymentToBill := decimal.Zero

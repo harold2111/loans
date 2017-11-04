@@ -13,7 +13,7 @@ func PayLoan(context echo.Context) error {
 	if error := context.Bind(request); error != nil {
 		return error
 	}
-	if error := models.PayLoan(request.LoanID, request.Payment); error != nil {
+	if error := models.PayLoan(request.LoanID, request.Payment, request.PaymentDate); error != nil {
 		return error
 	}
 	return context.JSON(http.StatusAccepted, request)

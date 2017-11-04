@@ -48,6 +48,10 @@ func NextBalanceFromBefore(beforeBalance Balance) Balance {
 
 func (balance *Balance) calculateAmountBalance() {
 	balance.ToInterest = balance.InitialPrincipal.Mul(balance.InterestRatePeriod)
+	balanceInitialPlusInterest := balance.InitialPrincipal.Add(balance.ToInterest)
+	if balanceInitialPlusInterest.LessThanOrEqual(balance.Payment) {
+		balance.Payment = balanceInitialPlusInterest
+	}
 	balance.ToPrincipal = balance.Payment.Sub(balance.ToInterest)
 	balance.FinalPrincipal = balance.InitialPrincipal.Sub(balance.ToPrincipal)
 }
