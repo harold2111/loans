@@ -14,6 +14,7 @@ import (
 
 const (
 	LoanStateActive = "ACTIVE"
+	LoanStateClosed = "CLOSED"
 )
 
 type Loan struct {
@@ -47,6 +48,11 @@ func (loan *Loan) Create() error {
 	return nil
 }
 
+func (loan *Loan) Update() error {
+	error := config.DB.Save(loan).Error
+	return error
+}
+
 func FindLoanByID(loanID uint) (Loan, error) {
 	var loan Loan
 	response := config.DB.First(&loan, loanID)
@@ -58,6 +64,16 @@ func FindLoanByID(loanID uint) (Loan, error) {
 		return loan, error
 	}
 	return loan, nil
+}
+
+func CloseLoan(loanID uint) error {
+	loan, error := FindLoanByID(loanID)
+	if error != nil {
+		return error
+	}
+	loan.State = LoanStateClosed
+	error = loan.Update()
+	return error
 }
 
 func calculateCloseDateAgreed(loan *Loan) {

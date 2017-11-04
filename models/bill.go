@@ -192,6 +192,10 @@ func (bill *Bill) ApplyPayment(paymentToBill decimal.Decimal) {
 	if bill.TotalDue.LessThanOrEqual(decimal.Zero) {
 		bill.State = BillStatePaid
 	}
+	if bill.FinalPrincipal.LessThanOrEqual(decimal.Zero) {
+		bill.PeriodStatus = PeriodStatusClosed
+		CloseLoan(bill.LoanID)
+	}
 }
 
 func calculateDaysLate(lastLiquidationDate, liquidationDate time.Time) int {
