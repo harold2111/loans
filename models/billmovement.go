@@ -11,6 +11,7 @@ import (
 type BillMovement struct {
 	gorm.Model
 	BillID                 uint
+	PaymentID              uint
 	MovementDate           time.Time
 	InitialPaymentDue      decimal.Decimal `gorm:"type:numeric"`
 	InitialFeeLateDue      decimal.Decimal `gorm:"type:numeric"`

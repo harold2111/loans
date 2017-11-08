@@ -7,7 +7,12 @@ import (
 )
 
 type Payment struct {
-	LoanID      uint            `json:"loanID"`
-	Payment     decimal.Decimal `json:"payment"`
-	PaymentDate time.Time       `json:"paymentDate"`
+	LoanID        uint            `json:"loanID"`
+	PaymentAmount decimal.Decimal `json:"paymentAmount"`
+	PaymentDate   time.Time       `json:"paymentDate"`
+}
+
+type PaymentResponse struct {
+	ID uint
+	Payment
 }
