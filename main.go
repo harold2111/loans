@@ -2,11 +2,12 @@ package main
 
 import (
 	"fmt"
+	"loans/client"
 	"loans/config"
-	"loans/controllers"
 	"loans/errors"
+	"loans/loan"
 	"loans/migration"
-	"loans/validators"
+	"loans/utils"
 	"time"
 
 	"github.com/labstack/echo"
@@ -16,7 +17,7 @@ func main() {
 
 	time.Local = config.DefaultLocation()
 
-	validators.InitValidator()
+	utils.InitValidator()
 	config.InitDB("host=localhost user=postgres dbname=loans sslmode=disable password=Nayarin1214")
 	migration.MigrateModel(config.DB)
 	//startPaymentJob()
@@ -24,12 +25,12 @@ func main() {
 	echoContext := echo.New()
 	echoContext.HTTPErrorHandler = errors.CustomHTTPErrorHandler
 
-	echoContext.POST("/api/clients", controllers.CreateClient)
-	echoContext.PUT("/api/clients/:id", controllers.UpdateClient)
+	echoContext.POST("/api/clients", client.CreateClient)
+	echoContext.PUT("/api/clients/:id", client.UpdateClient)
 
-	echoContext.POST("/api/loans", controllers.CreateLoan)
+	echoContext.POST("/api/loans", loan.CreateLoan)
 
-	echoContext.POST("/api/loans/payments", controllers.PayLoan)
+	echoContext.POST("/api/loans/payments", loan.PayLoan)
 
 	echoContext.Logger.Fatal(echoContext.Start(":1323"))
 

@@ -1,22 +1,28 @@
 package migration
 
 import (
+	"loans/address"
+	"loans/client"
 	"loans/config"
-	"loans/models"
+	"loans/loan"
 
 	"github.com/jinzhu/gorm"
 )
 
 func MigrateModel(db *gorm.DB) {
 	db.LogMode(true)
-	db.DropTableIfExists(&models.Client{}, &models.Address{}, &models.City{}, &models.Department{}, &models.Country{}, &models.Loan{}, &models.Bill{}, &models.BillMovement{}, &models.Payment{})
-	db.CreateTable(&models.Address{}, &models.Client{}, &models.City{}, &models.Department{}, &models.Country{}, &models.Loan{}, &models.Bill{}, &models.BillMovement{}, &models.Payment{})
 
-	db.Model(&models.Client{}).Related(&models.Address{})
+	db.DropTableIfExists(&client.Client{}, &address.Address{}, &address.City{}, &address.Department{},
+		&address.Country{}, &loan.Loan{}, &loan.Bill{}, &loan.BillMovement{}, &loan.Payment{})
 
-	country := models.Country{Name: "Colombia"}
-	department := models.Department{Name: "Atlántico", Country: country}
-	city := models.City{Name: "Barranquilla", Department: department}
+	db.CreateTable(&client.Client{}, &address.Address{}, &address.City{}, &address.Department{},
+		&address.Country{}, &loan.Loan{}, &loan.Bill{}, &loan.BillMovement{}, &loan.Payment{})
+
+	db.Model(&client.Client{}).Related(&address.Address{})
+
+	country := address.Country{Name: "Colombia"}
+	department := address.Department{Name: "Atlántico", Country: country}
+	city := address.City{Name: "Barranquilla", Department: department}
 
 	if error := config.DB.Save(&city).Error; error != nil {
 		panic(error)

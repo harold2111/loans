@@ -1,4 +1,4 @@
-package models
+package address
 
 import (
 	"loans/config"
@@ -14,7 +14,7 @@ type City struct {
 	DepartmentID uint `gorm:"not null"`
 }
 
-func findCityByID(cityID uint) (*City, error) {
+func FindCityByID(cityID uint) (*City, error) {
 	var city City
 	response := config.DB.First(&city, cityID)
 	if error := response.Error; error != nil {

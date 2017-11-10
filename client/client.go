@@ -1,10 +1,10 @@
-package models
+package client
 
 import (
 	"fmt"
+	"loans/address"
 	"loans/config"
 	"loans/errors"
-	"loans/postgres"
 
 	"github.com/jinzhu/gorm"
 )
@@ -14,9 +14,8 @@ type Client struct {
 	Identification string `gorm:"not null; unique_index"`
 	FirstName      string `gorm:"not null"`
 	LastName       string `gorm:"not null"`
-	Telephone1     string `gorm:"not null"`
 	Telephone2     string
-	Addresses      []Address
+	Addresses      []address.Address
 }
 
 const (
@@ -30,7 +29,7 @@ func (client *Client) Create() error {
 	}
 	error := config.DB.Create(client).Error
 	if error != nil {
-		if postgres.IsUniqueConstraintError(error, UniqueConstraintIdentification) {
+		if config.IsUniqueConstraintError(error, UniqueConstraintIdentification) {
 			messagesParameters := []interface{}{client.Identification}
 			return &errors.GracefulError{ErrorCode: errors.IdentificationDuplicate, MessagesParameters: messagesParameters}
 		}
@@ -44,13 +43,13 @@ func (client *Client) Update() error {
 	}
 	error := config.DB.Save(client).Error
 	if error != nil {
-		if postgres.IsUniqueConstraintError(error, UniqueConstraintIdentification) {
+		if config.IsUniqueConstraintError(error, UniqueConstraintIdentification) {
 			messagesParameters := []interface{}{client.Identification}
 			return &errors.GracefulError{ErrorCode: errors.IdentificationDuplicate, MessagesParameters: messagesParameters}
 		}
 		return error
 	}
-	client.Addresses, error = findAddressesByClientId(client.ID)
+	client.Addresses, error = address.FindAddressesByClientId(client.ID)
 	return error
 }
 
@@ -77,12 +76,12 @@ func clientExist(clientID uint) (bool, error) {
 	return true, nil
 }
 
-func validateClientAddress(addresses []Address) error {
+func validateClientAddress(addresses []address.Address) error {
 	if len(addresses) <= 0 {
 		return &errors.GracefulError{ErrorCode: errors.AddressRequired}
 	}
-	for _, address := range addresses {
-		if _, error := findCityByID(address.CityID); error != nil {
+	for _, addressValue := range addresses {
+		if _, error := address.FindCityByID(addressValue.CityID); error != nil {
 			return error
 		}
 	}

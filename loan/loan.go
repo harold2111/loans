@@ -1,4 +1,4 @@
-package models
+package loan
 
 import (
 	"loans/config"
@@ -7,9 +7,8 @@ import (
 	"loans/utils"
 	"time"
 
-	"github.com/shopspring/decimal"
-
 	"github.com/jinzhu/gorm"
+	"github.com/shopspring/decimal"
 )
 
 const (
@@ -27,7 +26,6 @@ type Loan struct {
 	CloseDateAgreed    time.Time
 	CloseDate          *time.Time
 	State              string
-	Client             Client
 	ClientID           uint `gorm:"not null"`
 }
 

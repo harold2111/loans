@@ -1,9 +1,8 @@
-package controllers
+package client
 
 import (
 	"loans/dtos"
-	"loans/models"
-	"loans/validators"
+	"loans/utils"
 	"net/http"
 	"strconv"
 
@@ -16,10 +15,10 @@ func CreateClient(context echo.Context) error {
 	if error := context.Bind(request); error != nil {
 		return error
 	}
-	if error := validators.ValidateStruct(request); error != nil {
+	if error := utils.ValidateStruct(request); error != nil {
 		return error
 	}
-	client := new(models.Client)
+	client := new(Client)
 	if error := copier.Copy(&client, &request); error != nil {
 		return error
 	}
@@ -39,10 +38,10 @@ func UpdateClient(context echo.Context) error {
 	if error := context.Bind(request); error != nil {
 		return error
 	}
-	if error := validators.ValidateStruct(request); error != nil {
+	if error := utils.ValidateStruct(request); error != nil {
 		return error
 	}
-	client := new(models.Client)
+	client := new(Client)
 	if error := copier.Copy(&client, &request); error != nil {
 		return error
 	}
