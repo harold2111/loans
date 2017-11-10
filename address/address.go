@@ -11,8 +11,7 @@ type Address struct {
 	gorm.Model
 	Address  string `gorm:"not null"`
 	ClientID uint   `gorm:"not null"`
-	City     City
-	CityID   uint `gorm:"not null"`
+	CityID   uint   `gorm:"not null"`
 }
 
 func FindAddressesByClientId(clientID uint) ([]Address, error) {
