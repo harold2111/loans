@@ -9,7 +9,16 @@ import (
 	"github.com/labstack/echo"
 )
 
-func CreateLoan(context echo.Context) error {
+func SuscribeLoanHandler(s Service, e *echo.Echo) {
+	e.POST("/api/loans", func(c echo.Context) error {
+		return handleCreateLoan(s, c)
+	})
+	e.POST("/api/loans/payments", func(c echo.Context) error {
+		return handlePayLoan(s, c)
+	})
+}
+
+func handleCreateLoan(s Service, context echo.Context) error {
 	request := dtos.CreateLoan{}
 	if error := context.Bind(&request); error != nil {
 		return error
@@ -21,7 +30,7 @@ func CreateLoan(context echo.Context) error {
 	if error := copier.Copy(&loan, &request); error != nil {
 		return error
 	}
-	if error := loan.Create(); error != nil {
+	if error := s.CreateLoan(&loan); error != nil {
 		return error
 	}
 	response := dtos.LoanResponse{}
@@ -31,7 +40,7 @@ func CreateLoan(context echo.Context) error {
 	return context.JSON(http.StatusCreated, response)
 }
 
-func PayLoan(context echo.Context) error {
+func handlePayLoan(s Service, context echo.Context) error {
 	request := dtos.Payment{}
 	if error := context.Bind(&request); error != nil {
 		return error
@@ -40,7 +49,7 @@ func PayLoan(context echo.Context) error {
 	if error := copier.Copy(&payment, &request); error != nil {
 		return error
 	}
-	if error := payment.PayLoan(); error != nil {
+	if error := s.PayLoan(&payment); error != nil {
 		return error
 	}
 	response := dtos.PaymentResponse{}

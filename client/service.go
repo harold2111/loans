@@ -16,7 +16,7 @@ type Service interface {
 	UpdateClient(client *Client) error
 }
 
-// NewService creates a booking service with necessary dependencies.
+// NewService creates a client service with necessary dependencies.
 func NewService(clientRepository Repository, locationRepository location.Repository) Service {
 	return &service{
 		clientRepository:   clientRepository,

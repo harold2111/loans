@@ -2,7 +2,6 @@ package postgres
 
 import (
 	"loans/client"
-	"loans/config"
 	"loans/errors"
 
 	"github.com/jinzhu/gorm"
@@ -12,7 +11,11 @@ type clientRepository struct {
 	db *gorm.DB
 }
 
-// NewClientRepository returns a new instance of a Postgres cargo repository.
+const (
+	uniqueConstraintIdentification = "uix_clients_identification"
+)
+
+// NewClientRepository returns a new instance of a Postgres client repository.
 func NewClientRepository(db *gorm.DB) (client.Repository, error) {
 	r := &clientRepository{
 		db: db,
@@ -23,7 +26,7 @@ func NewClientRepository(db *gorm.DB) (client.Repository, error) {
 func (r *clientRepository) Store(client *client.Client) error {
 	error := r.db.Create(client).Error
 	if error != nil {
-		if IsUniqueConstraintError(error, UniqueConstraintIdentification) {
+		if isUniqueConstraintError(error, uniqueConstraintIdentification) {
 			messagesParameters := []interface{}{client.Identification}
 			return &errors.GracefulError{ErrorCode: errors.IdentificationDuplicate, MessagesParameters: messagesParameters}
 		}
@@ -34,7 +37,7 @@ func (r *clientRepository) Store(client *client.Client) error {
 func (r *clientRepository) Update(client *client.Client) error {
 	error := r.db.Save(client).Error
 	if error != nil {
-		if config.IsUniqueConstraintError(error, UniqueConstraintIdentification) {
+		if isUniqueConstraintError(error, uniqueConstraintIdentification) {
 			messagesParameters := []interface{}{client.Identification}
 			return &errors.GracefulError{ErrorCode: errors.IdentificationDuplicate, MessagesParameters: messagesParameters}
 		}
@@ -82,10 +85,7 @@ func (r *clientRepository) StoreClientAddresses(clientID uint, addresses *[]clie
 	for _, address := range *addresses {
 		address.ClientID = clientID
 		if error := r.db.Create(&address).Error; error != nil {
-			if IsUniqueConstraintError(error, UniqueConstraintIdentification) {
-				messagesParameters := []interface{}{address.ID}
-				return &errors.GracefulError{ErrorCode: errors.AddressDuplicate, MessagesParameters: messagesParameters}
-			}
+			return error
 		}
 	}
 	return nil

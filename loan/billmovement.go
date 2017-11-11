@@ -27,11 +27,6 @@ type BillMovement struct {
 	FinalDue               decimal.Decimal `gorm:"type:numeric"`
 }
 
-func (billMovement *BillMovement) Create() error {
-	error := config.DB.Create(billMovement).Error
-	return error
-}
-
 func (billMovement *BillMovement) fillInitialBillMovementFromBill(bill Bill) {
 	billMovement.BillID = bill.ID
 	billMovement.MovementDate = bill.LastLiquidationDate

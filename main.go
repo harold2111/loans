@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/jinzhu/gorm"
+	_ "github.com/jinzhu/gorm/dialects/postgres"
 	"github.com/labstack/echo"
 )
 
@@ -31,13 +32,14 @@ func main() {
 	echoContext.HTTPErrorHandler = errors.CustomHTTPErrorHandler
 
 	clientRepository, _ := postgres.NewClientRepository(db)
+	loanRepository, _ := postgres.NewLoanRepository(db)
 	locationRepositoy, _ := postgres.NewLocationRepositoryy(db)
 
 	clientService := client.NewService(clientRepository, locationRepositoy)
+	loanService := loan.NewService(loanRepository, clientRepository)
 
 	client.SuscribeClientHandler(clientService, echoContext)
-	echoContext.POST("/api/loans", loan.CreateLoan)
-	echoContext.POST("/api/loans/payments", loan.PayLoan)
+	loan.SuscribeLoanHandler(loanService, echoContext)
 
 	echoContext.Logger.Fatal(echoContext.Start(":1323"))
 

@@ -2,7 +2,6 @@ package loan
 
 import (
 	"loans/config"
-	"loans/errors"
 	"loans/financial"
 	"loans/utils"
 	"time"
@@ -40,92 +39,6 @@ type Bill struct {
 	PaidToPrincipal     decimal.Decimal `gorm:"type:numeric"`
 	FinalPrincipal      decimal.Decimal `gorm:"type:numeric"`
 	LastLiquidationDate time.Time
-}
-
-func (bill *Bill) Create() error {
-	error := config.DB.Create(bill).Error
-	return error
-}
-
-func (bill *Bill) Update() error {
-	error := config.DB.Save(bill).Error
-	return error
-}
-
-func (bill *Bill) ClosePeriod() error {
-	bill.PeriodStatus = PeriodStatusClosed
-	return bill.Update()
-}
-
-func FindBillsByLoanID(loanID uint) ([]Bill, error) {
-	var bills []Bill
-	config.DB.Find(&bills, "loan_id = ?", loanID)
-	return bills, nil
-}
-
-func FindBillsWithDueOrOpenOrderedByPeriodAsc(loanID uint) ([]Bill, error) {
-	var bills []Bill
-	config.DB.Order("period").Find(&bills, "loan_id = ? AND state = ? OR period_status = ?", loanID, BillStateDue, PeriodStatusOpen)
-	return bills, nil
-}
-
-func FindBillOpenPeriodByLoanID(loanID uint) (Bill, error) {
-	bill := Bill{}
-	error := config.DB.Raw("SELECT * FROM bills WHERE loan_id = ? AND period_status = ? AND period = (SELECT max(period) FROM bills where loan_id = ?)",
-		loanID, PeriodStatusOpen, loanID).Scan(&bill).Error
-	return bill, error
-}
-
-func CreateInitialBill(loanID uint) error {
-	loan, error := FindLoanByID(loanID)
-	if error != nil {
-		return error
-	}
-	bills, _ := FindBillsByLoanID(loanID)
-	if len(bills) > 0 {
-		return &errors.GracefulError{ErrorCode: errors.BillAlreadyExist}
-	}
-	period := 1
-	newBill := Bill{}
-	newBill.LoanID = loan.ID
-	newBill.Period = uint(period)
-	newBill.BillStartDate = loan.StartDate
-	newBill.BillEndDate = utils.AddMothToTimeForPayment(newBill.BillStartDate, 1)
-	balancePeriod := balanceExpectedInSpecificPeriodOfLoan(loan, period)
-	fillDefaultAmountValues(&newBill, balancePeriod)
-	newBill.Create()
-
-	return nil
-}
-
-func RecurringLoanBillingByLoanID(loanID uint) error {
-	loan, error := FindLoanByID(loanID)
-	if error != nil {
-		return error
-	}
-	oldBill := Bill{}
-	oldBill, error = FindBillOpenPeriodByLoanID(loanID)
-	if error != nil {
-		return error
-	}
-	if time.Now().Before(oldBill.BillEndDate) {
-		return nil
-	}
-	period := int(oldBill.Period + 1)
-	newBill := Bill{}
-	newBill.LoanID = loan.ID
-	newBill.Period = uint(period)
-	newBill.BillStartDate = oldBill.BillEndDate.AddDate(0, 0, 1)
-	newBill.BillEndDate = utils.AddMothToTimeForPayment(oldBill.BillEndDate, 1)
-	nextBalance := nextBalanceFromBill(oldBill)
-	fillDefaultAmountValues(&newBill, nextBalance)
-	if error := newBill.Create(); error != nil {
-		return error
-	}
-	if error := oldBill.ClosePeriod(); error != nil {
-		return error
-	}
-	return RecurringLoanBillingByLoanID(loanID)
 }
 
 func nextBalanceFromBill(bill Bill) financial.Balance {
@@ -171,7 +84,7 @@ func (bill *Bill) LiquidateBill(liquidationDate time.Time) {
 	bill.LastLiquidationDate = liquidationDate
 }
 
-func (bill *Bill) ApplyPayment(paymentToBill decimal.Decimal) {
+func (bill *Bill) applyPayment(paymentToBill decimal.Decimal) {
 	//the payment NO covers all the fee late
 	if paymentToBill.LessThanOrEqual(bill.FeeLateDue) {
 		bill.FeeLateDue = bill.FeeLateDue.Sub(paymentToBill)
@@ -191,10 +104,6 @@ func (bill *Bill) ApplyPayment(paymentToBill decimal.Decimal) {
 	bill.Paid = bill.Paid.Add(paymentToBill)
 	if bill.TotalDue.LessThanOrEqual(decimal.Zero) {
 		bill.State = BillStatePaid
-	}
-	if bill.FinalPrincipal.LessThanOrEqual(decimal.Zero) {
-		bill.PeriodStatus = PeriodStatusClosed
-		CloseLoan(bill.LoanID)
 	}
 }
 
