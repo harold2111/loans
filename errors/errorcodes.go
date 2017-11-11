@@ -2,6 +2,7 @@ package errors
 
 const (
 	IdentificationDuplicate = "IdentificationDuplicate"
+	AddressDuplicate        = "AddressDuplicate"
 	AddressRequired         = "AddressRequired"
 	CityNotExist            = "CityNotExist"
 	ClientNotAddressFound   = "AddressNotExist"
@@ -16,6 +17,7 @@ const (
 
 var ErrorMessages = map[string]string{
 	IdentificationDuplicate: "Identification '%v' already exists",
+	AddressDuplicate:        "Address '%v' already exists",
 	AddressRequired:         "At least one address is required",
 	CityNotExist:            "City '%v' not exist",
 	ClientNotAddressFound:   "No addresses found for client '%v'",

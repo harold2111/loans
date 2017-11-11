@@ -1,11 +1,6 @@
 package client
 
 import (
-	"fmt"
-	"loans/address"
-	"loans/config"
-	"loans/errors"
-
 	"github.com/jinzhu/gorm"
 )
 
@@ -15,75 +10,11 @@ type Client struct {
 	FirstName      string `gorm:"not null"`
 	LastName       string `gorm:"not null"`
 	Telephone2     string
-	Addresses      []address.Address
 }
 
-const (
-	UniqueConstraintIdentification = "uix_clients_identification"
-)
-
-func (client *Client) Create() error {
-	if error := validateClientAddress(client.Addresses); error != nil {
-		fmt.Println(error)
-		return error
-	}
-	error := config.DB.Create(client).Error
-	if error != nil {
-		if config.IsUniqueConstraintError(error, UniqueConstraintIdentification) {
-			messagesParameters := []interface{}{client.Identification}
-			return &errors.GracefulError{ErrorCode: errors.IdentificationDuplicate, MessagesParameters: messagesParameters}
-		}
-	}
-	return error
-}
-
-func (client *Client) Update() error {
-	if exist, error := clientExist(client.ID); !exist {
-		return error
-	}
-	error := config.DB.Save(client).Error
-	if error != nil {
-		if config.IsUniqueConstraintError(error, UniqueConstraintIdentification) {
-			messagesParameters := []interface{}{client.Identification}
-			return &errors.GracefulError{ErrorCode: errors.IdentificationDuplicate, MessagesParameters: messagesParameters}
-		}
-		return error
-	}
-	client.Addresses, error = address.FindAddressesByClientId(client.ID)
-	return error
-}
-
-func FindClientByID(clientID uint) (*Client, error) {
-	var client Client
-	response := config.DB.First(&client, clientID)
-	if error := response.Error; error != nil {
-		if response.RecordNotFound() {
-			messagesParameters := []interface{}{clientID}
-			return nil, &errors.RecordNotFound{ErrorCode: errors.ClientNotExist, MessagesParameters: messagesParameters}
-		}
-		return nil, error
-	}
-	return &client, nil
-}
-
-func clientExist(clientID uint) (bool, error) {
-	if _, error := FindClientByID(clientID); error != nil {
-		if _, ok := error.(*errors.RecordNotFound); ok {
-			return false, error
-		}
-		return false, error
-	}
-	return true, nil
-}
-
-func validateClientAddress(addresses []address.Address) error {
-	if len(addresses) <= 0 {
-		return &errors.GracefulError{ErrorCode: errors.AddressRequired}
-	}
-	for _, addressValue := range addresses {
-		if _, error := address.FindCityByID(addressValue.CityID); error != nil {
-			return error
-		}
-	}
-	return nil
+type Address struct {
+	gorm.Model
+	ClientID uint   `gorm:"not null"`
+	CityID   uint   `gorm:"not null"`
+	Address  string `gorm:"not null"`
 }

@@ -6,10 +6,11 @@ import (
 	"loans/config"
 	"loans/errors"
 	"loans/loan"
-	"loans/migration"
+	"loans/postgres"
 	"loans/utils"
 	"time"
 
+	"github.com/jinzhu/gorm"
 	"github.com/labstack/echo"
 )
 
@@ -17,19 +18,25 @@ func main() {
 
 	time.Local = config.DefaultLocation()
 
+	db, err := gorm.Open("postgres", "host=localhost user=postgres dbname=loans sslmode=disable password=Nayarin1214")
+	if err != nil {
+		panic("failed to connect database")
+	}
+	defer db.Close()
+
 	utils.InitValidator()
-	config.InitDB("host=localhost user=postgres dbname=loans sslmode=disable password=Nayarin1214")
-	migration.MigrateModel(config.DB)
-	//startPaymentJob()
+	postgres.MigrateModel(db)
 
 	echoContext := echo.New()
 	echoContext.HTTPErrorHandler = errors.CustomHTTPErrorHandler
 
-	echoContext.POST("/api/clients", client.CreateClient)
-	echoContext.PUT("/api/clients/:id", client.UpdateClient)
+	clientRepository, _ := postgres.NewClientRepository(db)
+	locationRepositoy, _ := postgres.NewLocationRepositoryy(db)
 
+	clientService := client.NewService(clientRepository, locationRepositoy)
+
+	client.SuscribeClientHandler(clientService, echoContext)
 	echoContext.POST("/api/loans", loan.CreateLoan)
-
 	echoContext.POST("/api/loans/payments", loan.PayLoan)
 
 	echoContext.Logger.Fatal(echoContext.Start(":1323"))
