@@ -1,7 +1,6 @@
 package loan
 
 import (
-	"loans/dtos"
 	"loans/utils"
 	"net/http"
 
@@ -19,7 +18,7 @@ func SuscribeLoanHandler(s Service, e *echo.Echo) {
 }
 
 func handleCreateLoan(s Service, context echo.Context) error {
-	request := dtos.CreateLoan{}
+	request := CreateLoan{}
 	if error := context.Bind(&request); error != nil {
 		return error
 	}
@@ -33,7 +32,7 @@ func handleCreateLoan(s Service, context echo.Context) error {
 	if error := s.CreateLoan(&loan); error != nil {
 		return error
 	}
-	response := dtos.LoanResponse{}
+	response := LoanResponse{}
 	if error := copier.Copy(&response, &loan); error != nil {
 		return error
 	}
@@ -41,7 +40,7 @@ func handleCreateLoan(s Service, context echo.Context) error {
 }
 
 func handlePayLoan(s Service, context echo.Context) error {
-	request := dtos.Payment{}
+	request := PaymentRequest{}
 	if error := context.Bind(&request); error != nil {
 		return error
 	}
@@ -52,7 +51,7 @@ func handlePayLoan(s Service, context echo.Context) error {
 	if error := s.PayLoan(&payment); error != nil {
 		return error
 	}
-	response := dtos.PaymentResponse{}
+	response := PaymentResponse{}
 	if error := copier.Copy(&response, &payment); error != nil {
 		return error
 	}

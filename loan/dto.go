@@ -1,4 +1,4 @@
-package dtos
+package loan
 
 import (
 	"time"
@@ -33,4 +33,15 @@ type LoanResponse struct {
 	PaymentAgreed   decimal.Decimal `json:"paymentAgreed"`
 	CloseDateAgreed time.Time       `json:"closeDateAgreed"`
 	State           string          `json:"state"`
+}
+
+type PaymentRequest struct {
+	LoanID        uint            `json:"loanID"`
+	PaymentAmount decimal.Decimal `json:"paymentAmount"`
+	PaymentDate   time.Time       `json:"paymentDate"`
+}
+
+type PaymentResponse struct {
+	ID uint
+	Payment
 }

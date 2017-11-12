@@ -89,11 +89,12 @@ func (s *service) recurringBill(loanID uint) error {
 		return nil
 	}
 	period := int(oldBill.Period + 1)
-	newBill := Bill{}
-	newBill.LoanID = loan.ID
-	newBill.Period = uint(period)
-	newBill.BillStartDate = oldBill.BillEndDate.AddDate(0, 0, 1)
-	newBill.BillEndDate = utils.AddMothToTimeForPayment(oldBill.BillEndDate, 1)
+	newBill := Bill{
+		LoanID:        loan.ID,
+		Period:        uint(period),
+		BillStartDate: oldBill.BillEndDate.AddDate(0, 0, 1),
+		BillEndDate:   utils.AddMothToTimeForPayment(oldBill.BillEndDate, 1),
+	}
 	nextBalance := nextBalanceFromBill(oldBill)
 	fillDefaultAmountValues(&newBill, nextBalance)
 	if error := s.loanRepository.StoreBill(&newBill); error != nil {
@@ -120,33 +121,35 @@ func (s *service) PayLoan(payment *Payment) error {
 	}
 	remainingPayment := payment.PaymentAmount.RoundBank(config.Round)
 	for index, bill := range billsWithDue {
+		paymentToBill := decimal.Zero
 		if remainingPayment.LessThanOrEqual(decimal.Zero) {
 			break
 		}
-		billMovement := new(BillMovement)
-		billMovement.PaymentID = payment.ID
-		bill.LiquidateBill(payment.PaymentDate)
-		billMovement.fillInitialBillMovementFromBill(bill)
-
-		paymentToBill := decimal.Zero
 		if remainingPayment.LessThanOrEqual(bill.TotalDue) || len(billsWithDue) == (index+1) {
 			paymentToBill = remainingPayment
 		} else {
 			paymentToBill = bill.TotalDue
 		}
-		bill.applyPayment(paymentToBill)
-		if bill.FinalPrincipal.LessThanOrEqual(decimal.Zero) {
-			bill.PeriodStatus = PeriodStatusClosed
-			s.closeLoan(bill.LoanID)
-		}
-		billMovement.fillFinalBillMovementFromBill(bill)
-		if error := s.loanRepository.StoreBillMovement(billMovement); error != nil {
-			return error
-		}
-		if error := s.loanRepository.UpdateBill(&bill); error != nil {
+		bill.LiquidateBill(payment.PaymentDate)
+		if error := s.payBill(paymentToBill, bill); error != nil {
 			return error
 		}
 		remainingPayment = remainingPayment.Sub(paymentToBill).RoundBank(config.Round)
 	}
 	return nil
+}
+
+func (s *service) payBill(paymentToBill decimal.Decimal, bill Bill) error {
+	billMovement := new(BillMovement)
+	billMovement.fillInitialBillMovementFromBill(bill)
+	bill.applyPayment(paymentToBill)
+	if bill.FinalPrincipal.LessThanOrEqual(decimal.Zero) {
+		bill.PeriodStatus = PeriodStatusClosed
+		s.closeLoan(bill.LoanID)
+	}
+	billMovement.fillFinalBillMovementFromBill(bill)
+	if error := s.loanRepository.StoreBillMovement(billMovement); error != nil {
+		return error
+	}
+	return s.loanRepository.UpdateBill(&bill)
 }

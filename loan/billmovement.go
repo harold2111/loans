@@ -28,6 +28,7 @@ type BillMovement struct {
 }
 
 func (billMovement *BillMovement) fillInitialBillMovementFromBill(bill Bill) {
+	billMovement.PaymentID = bill.LoanID
 	billMovement.BillID = bill.ID
 	billMovement.MovementDate = bill.LastLiquidationDate
 	billMovement.InitialPaymentDue = bill.PaymentDue
