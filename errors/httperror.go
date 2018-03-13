@@ -1,7 +1,6 @@
 package errors
 
 import (
-	"fmt"
 	"net/http"
 
 	"github.com/labstack/echo"
@@ -22,9 +21,6 @@ func CustomHTTPErrorHandler(err error, c echo.Context) {
 	case *echo.HTTPError:
 		code = errorType.Code
 		msg = errorType.Message
-		if errorType.Inner != nil {
-			msg = fmt.Sprintf("%v, %v", errorType, errorType.Inner)
-		}
 	}
 
 	if _, ok := msg.(string); ok {

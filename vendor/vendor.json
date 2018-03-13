@@ -45,10 +45,12 @@
 			"revisionTime": "2017-01-02T12:52:26Z"
 		},
 		{
-			"checksumSHA1": "ZlcRn22hfOFXiAJvMMAlsbk5VuY=",
+			"checksumSHA1": "nV06rUq250Hsknpd8BbItczAVX8=",
 			"path": "github.com/labstack/echo",
-			"revision": "b28538b2e3f5446fe6e0e47ee34cd74b662ca2ab",
-			"revisionTime": "2017-10-01T21:56:42Z"
+			"revision": "1049c9613cd371b7ea8f219404c9a821734781ed",
+			"revisionTime": "2017-04-26T17:09:29Z",
+			"version": "v3.1",
+			"versionExact": "v3.1.0"
 		},
 		{
 			"checksumSHA1": "Yz8nRvgJR9qN9OORCUQKc4eHC7Q=",
