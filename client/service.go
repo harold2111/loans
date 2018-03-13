@@ -14,6 +14,7 @@ type service struct {
 type Service interface {
 	CreateClient(client *Client, adresses *[]Address) error
 	UpdateClient(client *Client) error
+	FindAllClients() ([]Client, error)
 }
 
 // NewService creates a client service with necessary dependencies.
@@ -22,6 +23,10 @@ func NewService(clientRepository Repository, locationRepository location.Reposit
 		clientRepository:   clientRepository,
 		locationRepository: locationRepository,
 	}
+}
+
+func (s *service) FindAllClients() ([]Client, error) {
+	return s.clientRepository.FindAll()
 }
 
 func (s *service) CreateClient(client *Client, adresses *[]Address) error {

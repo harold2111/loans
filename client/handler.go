@@ -10,12 +10,27 @@ import (
 )
 
 func SuscribeClientHandler(s Service, e *echo.Echo) {
+	e.GET("/api/clients", func(c echo.Context) error {
+		return handleFindAllClients(s, c)
+	})
 	e.POST("/api/clients", func(c echo.Context) error {
 		return handleCreateClient(s, c)
 	})
 	e.PUT("/api/clients/:id", func(c echo.Context) error {
 		return handleUpdateClient(s, c)
 	})
+}
+
+func handleFindAllClients(s Service, c echo.Context) error {
+	clients, error := s.FindAllClients()
+	if(error != nil){
+		return error
+	}
+	response := new([]ClientResponse)
+	if error := copier.Copy(&response, &clients); error != nil {
+		return error
+	}
+	return c.JSON(http.StatusOK, response)
 }
 
 func handleCreateClient(s Service, c echo.Context) error {

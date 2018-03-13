@@ -10,6 +10,7 @@ const (
 	LoanNotExist            = "LoanNotExist"
 	BillAlreadyExist        = "BillAlreadyExist"
 	ToManyBillActives       = "ToManyBillActives"
+	NotDataFound            = "NotDataFound"
 
 	RequiredField = "RequiredField"
 	InvalidField  = "InvalidField"
@@ -25,6 +26,7 @@ var ErrorMessages = map[string]string{
 	LoanNotExist:            "Loan '%v' not exist",
 	BillAlreadyExist:        "Loan bill already exist",
 	ToManyBillActives:       "To many bill actives",
+	NotDataFound:            "Not Data Found",
 
 	RequiredField: "The field '%v' is mandatory",
 	InvalidField:  "The field '%v' is invalid",

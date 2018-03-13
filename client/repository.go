@@ -8,4 +8,5 @@ type Repository interface {
 	ClientExist(clientID uint) (bool, error)
 	StoreClientAddresses(clientID uint, addresses *[]Address) error
 	FindClientAddress(clientID uint) ([]Address, error)
+	FindAll() ([]Client, error)
 }

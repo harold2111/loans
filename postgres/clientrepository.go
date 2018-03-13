@@ -58,6 +58,18 @@ func (r *clientRepository) Find(clientID uint) (*client.Client, error) {
 	return &client, nil
 }
 
+func (r *clientRepository) FindAll() ([]client.Client, error) {
+	var clients []client.Client
+	response := r.db.Find(&clients)
+	if error := response.Error; error != nil {
+		return nil, error
+	}
+	if len(clients) <= 0 {
+		return nil, &errors.RecordNotFound{ErrorCode: errors.NotDataFound, MessagesParameters: []interface{}{}}
+	}
+	return clients, nil
+}
+
 func (r *clientRepository) ClientExist(clientID uint) (bool, error) {
 	if _, error := r.Find(clientID); error != nil {
 		if _, ok := error.(*errors.RecordNotFound); ok {
