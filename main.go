@@ -13,6 +13,8 @@ import (
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/postgres"
 	"github.com/labstack/echo"
+	"github.com/labstack/echo/middleware"
+	
 )
 
 func main() {
@@ -29,6 +31,7 @@ func main() {
 	postgres.MigrateModel(db)
 
 	echoContext := echo.New()
+	echoContext.Use(middleware.CORS())
 	echoContext.HTTPErrorHandler = errors.CustomHTTPErrorHandler
 
 	clientRepository, _ := postgres.NewClientRepository(db)
