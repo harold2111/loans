@@ -11,7 +11,7 @@ type ClientCommonFields struct {
 // Request
 type CreateClientRequest struct {
 	ClientCommonFields
-	Addresses []CreateAddress `json:"addresses" validate:"required,dive"`
+	Address CreateAddress `json:"address" validate:"required"`
 }
 
 type CreateAddress struct {
@@ -23,7 +23,7 @@ type CreateAddress struct {
 type ClientResponse struct {
 	ID uint `json:"id"`
 	ClientCommonFields
-	Addresses []AddressResponse `json:"addresses" validate:"required,dive"`
+	Address AddressResponse `json:"address" validate:"required"`
 }
 
 type AddressResponse struct {

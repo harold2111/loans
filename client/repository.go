@@ -6,7 +6,6 @@ type Repository interface {
 	Update(client *Client) error
 	Find(clientID uint) (*Client, error)
 	ClientExist(clientID uint) (bool, error)
-	StoreClientAddresses(clientID uint, addresses *[]Address) error
 	FindClientAddress(clientID uint) ([]Address, error)
 	FindAll() ([]Client, error)
 }

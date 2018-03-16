@@ -12,7 +12,7 @@ type service struct {
 
 // Service is the interface that provides client methods.
 type Service interface {
-	CreateClient(client *Client, adresses *[]Address) error
+	CreateClient(client *Client) error
 	UpdateClient(client *Client) error
 	FindAllClients() ([]Client, error)
 }
@@ -29,14 +29,11 @@ func (s *service) FindAllClients() ([]Client, error) {
 	return s.clientRepository.FindAll()
 }
 
-func (s *service) CreateClient(client *Client, adresses *[]Address) error {
-	if error := validateClientAddress(s.locationRepository, adresses); error != nil {
+func (s *service) CreateClient(client *Client) error {
+	if error := validateClientAddress(s.locationRepository, client.Address); error != nil {
 		return error
-	}
-	if error := s.clientRepository.Store(client); error != nil {
-		return error
-	}
-	return s.clientRepository.StoreClientAddresses(client.ID, adresses)
+	}	
+	return s.clientRepository.Store(client)
 }
 
 func (s *service) UpdateClient(client *Client) error {
@@ -46,14 +43,12 @@ func (s *service) UpdateClient(client *Client) error {
 	return s.clientRepository.Update(client)
 }
 
-func validateClientAddress(locationRepository location.Repository, addresses *[]Address) error {
-	if len(*addresses) <= 0 {
+func validateClientAddress(locationRepository location.Repository, address Address) error {
+	if len(address.Address) <= 0 {
 		return &errors.GracefulError{ErrorCode: errors.AddressRequired}
 	}
-	for _, addressValue := range *addresses {
-		if _, error := locationRepository.FindCity(addressValue.CityID); error != nil {
-			return error
-		}
+	if _, error := locationRepository.FindCity(address.CityID); error != nil {
+		return error
 	}
 	return nil
 }

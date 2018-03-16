@@ -92,13 +92,3 @@ func (r *clientRepository) FindClientAddress(clientID uint) ([]client.Address, e
 	}
 	return addresses, nil
 }
-
-func (r *clientRepository) StoreClientAddresses(clientID uint, addresses *[]client.Address) error {
-	for _, address := range *addresses {
-		address.ClientID = clientID
-		if error := r.db.Create(&address).Error; error != nil {
-			return error
-		}
-	}
-	return nil
-}

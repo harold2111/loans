@@ -44,12 +44,8 @@ func handleCreateClient(s Service, c echo.Context) error {
 	client := new(Client)
 	if error := copier.Copy(&client, &request); error != nil {
 		return error
-	}
-	addresses := new([]Address)
-	if error := copier.Copy(addresses, &request.Addresses); error != nil {
-		return error
-	}
-	if error := s.CreateClient(client, addresses); error != nil {
+	}	
+	if error := s.CreateClient(client); error != nil {
 		return error
 	}
 	response := new(ClientResponse)
