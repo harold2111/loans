@@ -19,14 +19,6 @@ func NewLoanRepository(db *gorm.DB) (loan.Repository, error) {
 	return r, nil
 }
 
-func (r *loanRepository) StoreLoan(loan *loan.Loan) error {
-	return r.db.Create(loan).Error
-}
-
-func (r *loanRepository) UpdateLoan(loan *loan.Loan) error {
-	return r.db.Save(loan).Error
-}
-
 func (r *loanRepository) FindLoanByID(loanID uint) (loan.Loan, error) {
 	var loan loan.Loan
 	respose := r.db.First(&loan, loanID)
@@ -38,6 +30,14 @@ func (r *loanRepository) FindLoanByID(loanID uint) (loan.Loan, error) {
 		return loan, error
 	}
 	return loan, nil
+}
+
+func (r *loanRepository) StoreLoan(loan *loan.Loan) error {
+	return r.db.Create(loan).Error
+}
+
+func (r *loanRepository) UpdateLoan(loan *loan.Loan) error {
+	return r.db.Save(loan).Error
 }
 
 func (r *loanRepository) StoreBill(bill *loan.Bill) error {

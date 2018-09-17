@@ -23,6 +23,28 @@ func NewClientRepository(db *gorm.DB) (client.Repository, error) {
 	return r, nil
 }
 
+func (r *clientRepository) FindAll() ([]client.Client, error) {
+	var clients []client.Client
+	response := r.db.Find(&clients)
+	if error := response.Error; error != nil {
+		return nil, error
+	}
+	return clients, nil
+}
+
+func (r *clientRepository) Find(clientID uint) (*client.Client, error) {
+	var client client.Client
+	response := r.db.First(&client, clientID)
+	if error := response.Error; error != nil {
+		if response.RecordNotFound() {
+			messagesParameters := []interface{}{clientID}
+			return nil, &errors.RecordNotFound{ErrorCode: errors.ClientNotExist, MessagesParameters: messagesParameters}
+		}
+		return nil, error
+	}
+	return &client, nil
+}
+
 func (r *clientRepository) Store(client *client.Client) error {
 	error := r.db.Create(client).Error
 	if error != nil {
@@ -43,31 +65,6 @@ func (r *clientRepository) Update(client *client.Client) error {
 		}
 	}
 	return error
-}
-
-func (r *clientRepository) Find(clientID uint) (*client.Client, error) {
-	var client client.Client
-	response := r.db.First(&client, clientID)
-	if error := response.Error; error != nil {
-		if response.RecordNotFound() {
-			messagesParameters := []interface{}{clientID}
-			return nil, &errors.RecordNotFound{ErrorCode: errors.ClientNotExist, MessagesParameters: messagesParameters}
-		}
-		return nil, error
-	}
-	return &client, nil
-}
-
-func (r *clientRepository) FindAll() ([]client.Client, error) {
-	var clients []client.Client
-	response := r.db.Find(&clients)
-	if error := response.Error; error != nil {
-		return nil, error
-	}
-	if len(clients) <= 0 {
-		return nil, &errors.RecordNotFound{ErrorCode: errors.NotDataFound, MessagesParameters: []interface{}{}}
-	}
-	return clients, nil
 }
 
 func (r *clientRepository) ClientExist(clientID uint) (bool, error) {
