@@ -6,6 +6,7 @@ import (
 	"loans/config"
 	"loans/errors"
 	"loans/loan"
+	"loans/location"
 	"loans/postgres"
 	"loans/utils"
 	"time"
@@ -14,7 +15,6 @@ import (
 	_ "github.com/jinzhu/gorm/dialects/postgres"
 	"github.com/labstack/echo"
 	"github.com/labstack/echo/middleware"
-	
 )
 
 func main() {
@@ -40,9 +40,11 @@ func main() {
 
 	clientService := client.NewService(clientRepository, locationRepositoy)
 	loanService := loan.NewService(loanRepository, clientRepository)
+	locationService := location.NewService(locationRepositoy)
 
 	client.SuscribeClientHandler(clientService, echoContext)
 	loan.SuscribeLoanHandler(loanService, echoContext)
+	location.SuscribeLocationHandler(locationService, echoContext)
 
 	echoContext.Logger.Fatal(echoContext.Start(":1323"))
 

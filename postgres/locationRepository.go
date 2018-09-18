@@ -41,7 +41,7 @@ func (r *locationRepository) FindCity(cityID uint) (*location.City, error) {
 	return &city, nil
 }
 
-func (r *locationRepository) FindCitiesByDepartment(departmentID uint) ([]location.City, error) {
+func (r *locationRepository) FindCitiesByDepartmentID(departmentID uint) ([]location.City, error) {
 	var cities []location.City
 	response := r.db.Find(&cities, "department_id = ?", departmentID)
 	if error := response.Error; error != nil {
