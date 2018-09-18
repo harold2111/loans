@@ -32,17 +32,17 @@ func (r *clientRepository) FindAll() ([]client.Client, error) {
 	return clients, nil
 }
 
-func (r *clientRepository) Find(clientID uint) (*client.Client, error) {
+func (r *clientRepository) Find(clientID uint) (client.Client, error) {
 	var client client.Client
 	response := r.db.First(&client, clientID)
 	if error := response.Error; error != nil {
 		if response.RecordNotFound() {
 			messagesParameters := []interface{}{clientID}
-			return nil, &errors.RecordNotFound{ErrorCode: errors.ClientNotExist, MessagesParameters: messagesParameters}
+			return client, &errors.RecordNotFound{ErrorCode: errors.ClientNotExist, MessagesParameters: messagesParameters}
 		}
-		return nil, error
+		return client, error
 	}
-	return &client, nil
+	return client, nil
 }
 
 func (r *clientRepository) Store(client *client.Client) error {

@@ -4,7 +4,7 @@ package client
 type Repository interface {
 	Store(client *Client) error
 	Update(client *Client) error
-	Find(clientID uint) (*Client, error)
+	Find(clientID uint) (Client, error)
 	ClientExist(clientID uint) (bool, error)
 	FindClientAddress(clientID uint) ([]Address, error)
 	FindAll() ([]Client, error)

@@ -1,6 +1,7 @@
 package client
 
 import (
+	"fmt"
 	"loans/utils"
 	"net/http"
 	"strconv"
@@ -13,6 +14,9 @@ func SuscribeClientHandler(s Service, e *echo.Echo) {
 	e.GET("/api/clients", func(c echo.Context) error {
 		return handleFindAllClients(s, c)
 	})
+	e.GET("/api/clients/:id", func(c echo.Context) error {
+		return handleFindClientByID(s, c)
+	})
 	e.POST("/api/clients", func(c echo.Context) error {
 		return handleCreateClient(s, c)
 	})
@@ -23,11 +27,24 @@ func SuscribeClientHandler(s Service, e *echo.Echo) {
 
 func handleFindAllClients(s Service, c echo.Context) error {
 	clients, error := s.FindAllClients()
-	if(error != nil){
+	if error != nil {
 		return error
 	}
 	response := new([]ClientResponse)
 	if error := copier.Copy(&response, &clients); error != nil {
+		return error
+	}
+	return c.JSON(http.StatusOK, response)
+}
+
+func handleFindClientByID(s Service, c echo.Context) error {
+	id, _ := strconv.Atoi(c.Param("id"))
+	client, error := s.FindClientByID(uint(id))
+	if error != nil {
+		return error
+	}
+	response := new(ClientResponse)
+	if error := copier.Copy(response, &client); error != nil {
 		return error
 	}
 	return c.JSON(http.StatusOK, response)
@@ -44,7 +61,7 @@ func handleCreateClient(s Service, c echo.Context) error {
 	client := new(Client)
 	if error := copier.Copy(&client, &request); error != nil {
 		return error
-	}	
+	}
 	if error := s.CreateClient(client); error != nil {
 		return error
 	}
@@ -69,6 +86,7 @@ func handleUpdateClient(s Service, c echo.Context) error {
 		return error
 	}
 	client.ID = uint(id)
+	fmt.Println(client)
 	if error := s.UpdateClient(client); error != nil {
 		return error
 	}
