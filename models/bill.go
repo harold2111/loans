@@ -1,4 +1,4 @@
-package loan
+package models
 
 import (
 	"loans/config"
@@ -41,36 +41,6 @@ type Bill struct {
 	LastLiquidationDate time.Time
 }
 
-func nextBalanceFromBill(bill Bill) financial.Balance {
-	balance := financial.Balance{}
-	balance.InitialPrincipal = bill.InitialPrincipal
-	balance.Payment = bill.Payment
-	balance.InterestRatePeriod = bill.InterestRate
-	balance.ToInterest = bill.InterestOfPayment
-	balance.ToPrincipal = bill.PrincipalOfPayment
-	balance.FinalPrincipal = bill.FinalPrincipal
-	return financial.NextBalanceFromBefore(balance)
-}
-
-func fillDefaultAmountValues(bill *Bill, balance financial.Balance) {
-	round := config.Round
-	bill.State = BillStateDue
-	bill.PeriodStatus = PeriodStatusOpen
-	bill.PaymentDate = bill.BillEndDate
-	bill.InitialPrincipal = balance.InitialPrincipal
-	bill.Payment = balance.Payment.RoundBank(round)
-	bill.InterestOfPayment = balance.ToInterest.RoundBank(round)
-	bill.InterestRate = balance.InterestRatePeriod.RoundBank(round)
-	bill.PrincipalOfPayment = balance.ToPrincipal.RoundBank(round)
-	bill.Paid = decimal.Zero
-	bill.DaysLate = 0
-	bill.FeeLateDue = decimal.Zero
-	bill.PaymentDue = bill.Payment
-	bill.TotalDue = bill.Payment
-	bill.FinalPrincipal = balance.FinalPrincipal.RoundBank(round)
-	bill.LastLiquidationDate = bill.PaymentDate
-}
-
 func (bill *Bill) LiquidateBill(liquidationDate time.Time) {
 	daysLate := calculateDaysLate(bill.LastLiquidationDate, liquidationDate)
 	feeLatePeriod := financial.FeeLateWithPeriodInterest(bill.InterestRate, bill.PaymentDue, daysLate).RoundBank(config.Round)
@@ -84,7 +54,7 @@ func (bill *Bill) LiquidateBill(liquidationDate time.Time) {
 	bill.LastLiquidationDate = liquidationDate
 }
 
-func (bill *Bill) applyPayment(paymentToBill decimal.Decimal) {
+func (bill *Bill) ApplyPayment(paymentToBill decimal.Decimal) {
 	//the payment NO covers all the fee late
 	if paymentToBill.LessThanOrEqual(bill.FeeLateDue) {
 		bill.FeeLateDue = bill.FeeLateDue.Sub(paymentToBill)

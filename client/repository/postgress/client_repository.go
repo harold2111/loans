@@ -3,8 +3,10 @@ package postgres
 import (
 	"loans/client"
 	"loans/errors"
+	"loans/models"
 
 	"github.com/jinzhu/gorm"
+	"github.com/lib/pq"
 )
 
 type clientRepository struct {
@@ -16,15 +18,15 @@ const (
 )
 
 // NewClientRepository returns a new instance of a Postgres client repository.
-func NewClientRepository(db *gorm.DB) (client.Repository, error) {
+func NewClientRepository(db *gorm.DB) (client.ClientRepository, error) {
 	r := &clientRepository{
 		db: db,
 	}
 	return r, nil
 }
 
-func (r *clientRepository) FindAll() ([]client.Client, error) {
-	var clients []client.Client
+func (r *clientRepository) FindAll() ([]models.Client, error) {
+	var clients []models.Client
 	response := r.db.Find(&clients)
 	if error := response.Error; error != nil {
 		return nil, error
@@ -32,8 +34,8 @@ func (r *clientRepository) FindAll() ([]client.Client, error) {
 	return clients, nil
 }
 
-func (r *clientRepository) Find(clientID uint) (client.Client, error) {
-	var client client.Client
+func (r *clientRepository) Find(clientID uint) (models.Client, error) {
+	var client models.Client
 	response := r.db.First(&client, clientID)
 	if error := response.Error; error != nil {
 		if response.RecordNotFound() {
@@ -45,7 +47,7 @@ func (r *clientRepository) Find(clientID uint) (client.Client, error) {
 	return client, nil
 }
 
-func (r *clientRepository) Store(client *client.Client) error {
+func (r *clientRepository) Store(client *models.Client) error {
 	error := r.db.Create(client).Error
 	if error != nil {
 		if isUniqueConstraintError(error, uniqueConstraintIdentification) {
@@ -56,7 +58,7 @@ func (r *clientRepository) Store(client *client.Client) error {
 	return error
 }
 
-func (r *clientRepository) Update(client *client.Client) error {
+func (r *clientRepository) Update(client *models.Client) error {
 	error := r.db.Save(client).Error
 	if error != nil {
 		if isUniqueConstraintError(error, uniqueConstraintIdentification) {
@@ -77,8 +79,8 @@ func (r *clientRepository) ClientExist(clientID uint) (bool, error) {
 	return true, nil
 }
 
-func (r *clientRepository) FindClientAddress(clientID uint) ([]client.Address, error) {
-	var addresses []client.Address
+func (r *clientRepository) FindClientAddress(clientID uint) ([]models.Address, error) {
+	var addresses []models.Address
 	response := r.db.Find(&addresses, "client_id = ?", clientID)
 	if error := response.Error; error != nil {
 		if response.RecordNotFound() {
@@ -88,4 +90,11 @@ func (r *clientRepository) FindClientAddress(clientID uint) ([]client.Address, e
 		return nil, error
 	}
 	return addresses, nil
+}
+
+func isUniqueConstraintError(err error, constraintName string) bool {
+	if pqErr, ok := err.(*pq.Error); ok {
+		return pqErr.Code == "23505" && pqErr.Constraint == constraintName
+	}
+	return false
 }

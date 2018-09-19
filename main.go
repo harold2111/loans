@@ -2,11 +2,17 @@ package main
 
 import (
 	"fmt"
-	"loans/client"
+	clientHtttpHandler "loans/client/handler/http"
+	clientRepository "loans/client/repository/postgress"
+	clientService "loans/client/service"
 	"loans/config"
 	"loans/errors"
-	"loans/loan"
-	"loans/location"
+	loanHtttpHandler "loans/loan/handler/http"
+	loanRepository "loans/loan/repository/postgress"
+	loanService "loans/loan/service"
+	locationHtttpHandler "loans/location/handler/http"
+	locationRepository "loans/location/repository/postgress"
+	locationtService "loans/location/service"
 	"loans/postgres"
 	"loans/utils"
 	"time"
@@ -34,17 +40,17 @@ func main() {
 	echoContext.Use(middleware.CORS())
 	echoContext.HTTPErrorHandler = errors.CustomHTTPErrorHandler
 
-	clientRepository, _ := postgres.NewClientRepository(db)
-	loanRepository, _ := postgres.NewLoanRepository(db)
-	locationRepositoy, _ := postgres.NewLocationRepositoryy(db)
+	clientRepository, _ := clientRepository.NewClientRepository(db)
+	loanRepository, _ := loanRepository.NewLoanRepository(db)
+	locationRepositoy, _ := locationRepository.NewLocationRepositoryy(db)
 
-	clientService := client.NewService(clientRepository, locationRepositoy)
-	loanService := loan.NewService(loanRepository, clientRepository)
-	locationService := location.NewService(locationRepositoy)
+	clientService := clientService.NewClientService(clientRepository, locationRepositoy)
+	loanService := loanService.NewLoanService(loanRepository, clientRepository)
+	locationService := locationtService.NewLocationService(locationRepositoy)
 
-	client.SuscribeClientHandler(clientService, echoContext)
-	loan.SuscribeLoanHandler(loanService, echoContext)
-	location.SuscribeLocationHandler(locationService, echoContext)
+	clientHtttpHandler.NewClientHttpHandler(echoContext, clientService)
+	loanHtttpHandler.NewLoanHttpHandler(echoContext, loanService)
+	locationHtttpHandler.NewLocationHttpHandler(echoContext, locationService)
 
 	echoContext.Logger.Fatal(echoContext.Start(":1323"))
 

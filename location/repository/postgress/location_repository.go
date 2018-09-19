@@ -3,6 +3,7 @@ package postgres
 import (
 	"loans/errors"
 	"loans/location"
+	"loans/models"
 
 	"github.com/jinzhu/gorm"
 )
@@ -12,15 +13,15 @@ type locationRepository struct {
 }
 
 // NewLocationRepositoryy returns a new instance of a Postgres location repository.
-func NewLocationRepositoryy(db *gorm.DB) (location.Repository, error) {
+func NewLocationRepositoryy(db *gorm.DB) (location.LocationRepository, error) {
 	r := &locationRepository{
 		db: db,
 	}
 	return r, nil
 }
 
-func (r *locationRepository) FindAllDepartments() ([]location.Department, error) {
-	var departments []location.Department
+func (r *locationRepository) FindAllDepartments() ([]models.Department, error) {
+	var departments []models.Department
 	response := r.db.Find(&departments)
 	if error := response.Error; error != nil {
 		return nil, error
@@ -28,8 +29,8 @@ func (r *locationRepository) FindAllDepartments() ([]location.Department, error)
 	return departments, nil
 }
 
-func (r *locationRepository) FindCity(cityID uint) (*location.City, error) {
-	var city location.City
+func (r *locationRepository) FindCity(cityID uint) (*models.City, error) {
+	var city models.City
 	response := r.db.First(&city, cityID)
 	if error := response.Error; error != nil {
 		if response.RecordNotFound() {
@@ -41,8 +42,8 @@ func (r *locationRepository) FindCity(cityID uint) (*location.City, error) {
 	return &city, nil
 }
 
-func (r *locationRepository) FindCitiesByDepartmentID(departmentID uint) ([]location.City, error) {
-	var cities []location.City
+func (r *locationRepository) FindCitiesByDepartmentID(departmentID uint) ([]models.City, error) {
+	var cities []models.City
 	response := r.db.Find(&cities, "department_id = ?", departmentID)
 	if error := response.Error; error != nil {
 		if response.RecordNotFound() {

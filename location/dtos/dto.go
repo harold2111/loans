@@ -1,4 +1,4 @@
-package location
+package dtos
 
 type DepartmentResponse struct {
 	ID   uint   `json:"id"`

@@ -1,6 +1,7 @@
-package loan
+package dtos
 
 import (
+	"loans/models"
 	"time"
 
 	"github.com/shopspring/decimal"
@@ -43,5 +44,5 @@ type PaymentRequest struct {
 
 type PaymentResponse struct {
 	ID uint
-	Payment
+	models.Payment
 }

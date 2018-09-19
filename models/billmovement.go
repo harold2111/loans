@@ -1,4 +1,4 @@
-package loan
+package models
 
 import (
 	"loans/config"
@@ -27,7 +27,7 @@ type BillMovement struct {
 	FinalDue               decimal.Decimal `gorm:"type:numeric"`
 }
 
-func (billMovement *BillMovement) fillInitialBillMovementFromBill(bill Bill) {
+func (billMovement *BillMovement) FillInitialBillMovementFromBill(bill Bill) {
 	billMovement.PaymentID = bill.LoanID
 	billMovement.BillID = bill.ID
 	billMovement.MovementDate = bill.LastLiquidationDate
@@ -38,7 +38,7 @@ func (billMovement *BillMovement) fillInitialBillMovementFromBill(bill Bill) {
 	billMovement.DaysLate = bill.DaysLate
 }
 
-func (billMovement *BillMovement) fillFinalBillMovementFromBill(bill Bill) {
+func (billMovement *BillMovement) FillFinalBillMovementFromBill(bill Bill) {
 	billMovement.PaidToPaymentDue = billMovement.InitialPaymentDue.Sub(bill.PaymentDue).RoundBank(config.Round)
 	billMovement.PaidToFeeLate = billMovement.InitialFeeLateDue.Sub(bill.FeeLateDue).RoundBank(config.Round)
 	billMovement.FinalPaymentDue = bill.PaymentDue

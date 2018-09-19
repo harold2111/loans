@@ -1,4 +1,4 @@
-package client
+package dtos
 
 type ClientCommonFields struct {
 	Identification string `json:"identification" validate:"required"`

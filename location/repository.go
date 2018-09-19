@@ -1,8 +1,9 @@
 package location
 
-// Repository provides access a address store.
-type Repository interface {
-	FindAllDepartments() ([]Department, error)
-	FindCitiesByDepartmentID(departmentID uint) ([]City, error)
-	FindCity(cityID uint) (*City, error)
+import "loans/models"
+
+type LocationRepository interface {
+	FindAllDepartments() ([]models.Department, error)
+	FindCitiesByDepartmentID(departmentID uint) ([]models.City, error)
+	FindCity(cityID uint) (*models.City, error)
 }

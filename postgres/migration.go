@@ -1,9 +1,7 @@
 package postgres
 
 import (
-	"loans/client"
-	"loans/loan"
-	"loans/location"
+	"loans/models"
 
 	"github.com/jinzhu/gorm"
 )
@@ -11,17 +9,17 @@ import (
 func MigrateModel(db *gorm.DB) {
 	db.LogMode(true)
 
-	db.DropTableIfExists(&client.Client{}, &client.Address{}, &location.City{}, &location.Department{},
-		&location.Country{}, &loan.Loan{}, &loan.Bill{}, &loan.BillMovement{}, &loan.Payment{})
+	db.DropTableIfExists(&models.Client{}, &models.Address{}, &models.City{}, &models.Department{},
+		&models.Country{}, &models.Loan{}, &models.Bill{}, &models.BillMovement{}, &models.Payment{})
 
-	db.CreateTable(&client.Client{}, &client.Address{}, &location.City{}, &location.Department{},
-		&location.Country{}, &loan.Loan{}, &loan.Bill{}, &loan.BillMovement{}, &loan.Payment{})
+	db.CreateTable(&models.Client{}, &models.Address{}, &models.City{}, &models.Department{},
+		&models.Country{}, &models.Loan{}, &models.Bill{}, &models.BillMovement{}, &models.Payment{})
 
-	db.Model(&client.Client{}).Related(&client.Address{})
+	db.Model(&models.Client{}).Related(&models.Address{})
 
-	country := location.Country{Name: "Colombia"}
-	department := location.Department{Name: "Atlántico", Country: country}
-	city := location.City{Name: "Barranquilla", Department: department}
+	country := models.Country{Name: "Colombia"}
+	department := models.Department{Name: "Atlántico", Country: country}
+	city := models.City{Name: "Barranquilla", Department: department}
 
 	if error := db.Save(&city).Error; error != nil {
 		panic(error)
