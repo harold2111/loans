@@ -2,7 +2,6 @@ package service
 
 import (
 	"loans/client"
-	"loans/errors"
 	"loans/location"
 	"loans/models"
 )
@@ -42,8 +41,7 @@ func (s *clientService) FindClientByID(clientID uint) (models.Client, error) {
 }
 
 func (s *clientService) CreateClient(client *models.Client) error {
-	//TODO: valide all address
-	if error := validateClientAddress(s.locationRepository, client.Addresses[0]); error != nil {
+	if error := s.addDepartmentIDToAddress(client.Addresses); error != nil {
 		return error
 	}
 	return s.clientRepository.Store(client)
@@ -53,15 +51,19 @@ func (s *clientService) UpdateClient(client *models.Client) error {
 	if exist, error := s.clientRepository.ClientExist(client.ID); !exist {
 		return error
 	}
+	if error := s.addDepartmentIDToAddress(client.Addresses); error != nil {
+		return error
+	}
 	return s.clientRepository.Update(client)
 }
 
-func validateClientAddress(locationRepository location.LocationRepository, address models.Address) error {
-	if len(address.Address) <= 0 {
-		return &errors.GracefulError{ErrorCode: errors.AddressRequired}
-	}
-	if _, error := locationRepository.FindCity(address.CityID); error != nil {
-		return error
+func (s *clientService) addDepartmentIDToAddress(addresses []models.Address) error {
+	for i, address := range addresses {
+		city, err := s.locationRepository.FindCity(address.CityID)
+		if err != nil {
+			return err
+		}
+		addresses[i].DepartmentID = city.ID
 	}
 	return nil
 }

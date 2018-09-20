@@ -1,15 +1,12 @@
 package http
 
 import (
-	"fmt"
 	"loans/client"
-	"loans/client/dtos"
 	"loans/models"
 	"loans/utils"
 	"net/http"
 	"strconv"
 
-	"github.com/jinzhu/copier"
 	"github.com/labstack/echo"
 )
 
@@ -43,11 +40,7 @@ func (handler *HttpClientHandler) handleFindClientByID(context echo.Context) err
 	if error != nil {
 		return error
 	}
-	response := new(dtos.ClientResponse)
-	if error := copier.Copy(response, &client); error != nil {
-		return error
-	}
-	return context.JSON(http.StatusOK, response)
+	return context.JSON(http.StatusOK, client)
 }
 
 func (handler *HttpClientHandler) handleCreateClient(context echo.Context) error {
@@ -67,26 +60,17 @@ func (handler *HttpClientHandler) handleCreateClient(context echo.Context) error
 
 func (handler *HttpClientHandler) handleUpdateClient(context echo.Context) error {
 	clientService := handler.ClientService
-	request := new(dtos.UpdateClientRequest)
-	id, _ := strconv.Atoi(context.Param("id"))
-	if error := context.Bind(request); error != nil {
-		return error
-	}
-	if error := utils.ValidateStruct(request); error != nil {
-		return error
-	}
 	client := new(models.Client)
-	if error := copier.Copy(&client, &request); error != nil {
+	id, _ := strconv.Atoi(context.Param("id"))
+	if error := context.Bind(client); error != nil {
+		return error
+	}
+	if error := utils.ValidateStruct(client); error != nil {
 		return error
 	}
 	client.ID = uint(id)
-	fmt.Println(client)
 	if error := clientService.UpdateClient(client); error != nil {
 		return error
 	}
-	response := new(dtos.ClientResponse)
-	if error := copier.Copy(&response, &client); error != nil {
-		return error
-	}
-	return context.JSON(http.StatusCreated, response)
+	return context.JSON(http.StatusCreated, client)
 }
