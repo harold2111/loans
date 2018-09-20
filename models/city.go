@@ -1,10 +1,12 @@
 package models
 
-import "github.com/jinzhu/gorm"
+import "time"
 
 type City struct {
-	gorm.Model
-	Name         string `gorm:"not null"`
-	Department   Department
-	DepartmentID uint `gorm:"not null"`
+	ID           uint       `gorm:"primary_key" json:"id"`
+	CreatedAt    time.Time  `json:"createdAt"`
+	UpdatedAt    time.Time  `json:"updatedAt"`
+	DeletedAt    *time.Time `sql:"index" json:"deletedAt"`
+	Name         string     `gorm:"not null" json:"name"`
+	DepartmentID uint       `gorm:"not null" json:"departmentID"`
 }

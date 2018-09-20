@@ -37,12 +37,13 @@ func (s *clientService) FindClientByID(clientID uint) (models.Client, error) {
 	if err != nil {
 		return client, err
 	}
-	client.Address = addresses[0]
+	client.Addresses = addresses
 	return client, nil
 }
 
 func (s *clientService) CreateClient(client *models.Client) error {
-	if error := validateClientAddress(s.locationRepository, client.Address); error != nil {
+	//TODO: valide all address
+	if error := validateClientAddress(s.locationRepository, client.Addresses[0]); error != nil {
 		return error
 	}
 	return s.clientRepository.Store(client)

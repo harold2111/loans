@@ -3,7 +3,6 @@ package models
 import (
 	"time"
 
-	"github.com/jinzhu/gorm"
 	"github.com/shopspring/decimal"
 )
 
@@ -13,14 +12,17 @@ const (
 )
 
 type Loan struct {
-	gorm.Model
-	Principal          decimal.Decimal `gorm:"type:numeric"`
-	InterestRatePeriod decimal.Decimal `gorm:"type:numeric"`
-	PeriodNumbers      uint
-	PaymentAgreed      decimal.Decimal `gorm:"type:numeric"`
-	StartDate          time.Time
-	CloseDateAgreed    time.Time
-	CloseDate          *time.Time
-	State              string
-	ClientID           uint `gorm:"not null"`
+	ID                 uint            `gorm:"primary_key" json:"id"`
+	CreatedAt          time.Time       `json:"createdAt"`
+	UpdatedAt          time.Time       `json:"updatedAt"`
+	DeletedAt          *time.Time      `sql:"index" json:"deletedAt" `
+	Principal          decimal.Decimal `gorm:"type:numeric" json:"principal"`
+	InterestRatePeriod decimal.Decimal `gorm:"type:numeric" json:"interestRatePeriod"`
+	PeriodNumbers      uint            `json:"periodNumbers"`
+	PaymentAgreed      decimal.Decimal `gorm:"type:numeric" json:"paymentAgreed"`
+	StartDate          time.Time       `json:"startDate"`
+	CloseDateAgreed    time.Time       `json:"closeDateAgreed"`
+	CloseDate          *time.Time      `json:"CloseDate"`
+	State              string          `json:"state"`
+	ClientID           uint            `gorm:"not null" json:"clientID" validate:"required"`
 }

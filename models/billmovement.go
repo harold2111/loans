@@ -4,27 +4,29 @@ import (
 	"loans/config"
 	"time"
 
-	"github.com/jinzhu/gorm"
 	"github.com/shopspring/decimal"
 )
 
 type BillMovement struct {
-	gorm.Model
-	BillID                 uint
-	PaymentID              uint
-	MovementDate           time.Time
-	InitialPaymentDue      decimal.Decimal `gorm:"type:numeric"`
-	InitialFeeLateDue      decimal.Decimal `gorm:"type:numeric"`
-	InitialPaidToPrincipal decimal.Decimal `gorm:"type:numeric"`
-	InitialDue             decimal.Decimal `gorm:"type:numeric"`
-	Paid                   decimal.Decimal `gorm:"type:numeric"`
-	DaysLate               int
-	PaidToPaymentDue       decimal.Decimal `gorm:"type:numeric"`
-	PaidToFeeLate          decimal.Decimal `gorm:"type:numeric"`
-	PaidToPrincipal        decimal.Decimal `gorm:"type:numeric"`
-	FinalPaymentDue        decimal.Decimal `gorm:"type:numeric"`
-	FinalFeeLateDue        decimal.Decimal `gorm:"type:numeric"`
-	FinalDue               decimal.Decimal `gorm:"type:numeric"`
+	ID                     uint            `gorm:"primary_key" json:"id"`
+	CreatedAt              time.Time       `json:"createdAt"`
+	UpdatedAt              time.Time       `json:"updatedAt"`
+	DeletedAt              *time.Time      `sql:"index" json:"deletedAt"`
+	BillID                 uint            `json:"billID"`
+	PaymentID              uint            `json:"ptartDate"`
+	MovementDate           time.Time       `json:"movementDate"`
+	InitialPaymentDue      decimal.Decimal `gorm:"type:numeric" json:"initialPaymentDue"`
+	InitialFeeLateDue      decimal.Decimal `gorm:"type:numeric" json:"initialFeeLateDue"`
+	InitialPaidToPrincipal decimal.Decimal `gorm:"type:numeric" json:"initialPaidToPrincipal"`
+	InitialDue             decimal.Decimal `gorm:"type:numeric" json:"initialDue"`
+	Paid                   decimal.Decimal `gorm:"type:numeric" json:"paid"`
+	DaysLate               int             `json:"startDate"`
+	PaidToPaymentDue       decimal.Decimal `gorm:"type:numeric" json:"PaidToPaymentDue"`
+	PaidToFeeLate          decimal.Decimal `gorm:"type:numeric" json:"PaidToFeeLate"`
+	PaidToPrincipal        decimal.Decimal `gorm:"type:numeric" json:"PaidToPrincipal"`
+	FinalPaymentDue        decimal.Decimal `gorm:"type:numeric" json:"FinalPaymentDue"`
+	FinalFeeLateDue        decimal.Decimal `gorm:"type:numeric" json:"FinalFeeLateDue"`
+	FinalDue               decimal.Decimal `gorm:"type:numeric" json:"starFinalDuetDate"`
 }
 
 func (billMovement *BillMovement) FillInitialBillMovementFromBill(bill Bill) {

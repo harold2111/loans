@@ -27,7 +27,7 @@ func NewClientRepository(db *gorm.DB) (client.ClientRepository, error) {
 
 func (r *clientRepository) FindAll() ([]models.Client, error) {
 	var clients []models.Client
-	response := r.db.Find(&clients)
+	response := r.db.Preload("Addresses").Find(&clients)
 	if error := response.Error; error != nil {
 		return nil, error
 	}

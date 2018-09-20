@@ -33,11 +33,7 @@ func (handler *HttpClientHandler) handleFindAllClients(context echo.Context) err
 	if error != nil {
 		return error
 	}
-	response := new([]dtos.ClientResponse)
-	if error := copier.Copy(&response, &clients); error != nil {
-		return error
-	}
-	return context.JSON(http.StatusOK, response)
+	return context.JSON(http.StatusOK, clients)
 }
 
 func (handler *HttpClientHandler) handleFindClientByID(context echo.Context) error {
@@ -56,25 +52,17 @@ func (handler *HttpClientHandler) handleFindClientByID(context echo.Context) err
 
 func (handler *HttpClientHandler) handleCreateClient(context echo.Context) error {
 	clientService := handler.ClientService
-	request := new(dtos.CreateClientRequest)
+	request := new(models.Client)
 	if error := context.Bind(request); error != nil {
 		return error
 	}
 	if error := utils.ValidateStruct(request); error != nil {
 		return error
 	}
-	client := new(models.Client)
-	if error := copier.Copy(&client, &request); error != nil {
+	if error := clientService.CreateClient(request); error != nil {
 		return error
 	}
-	if error := clientService.CreateClient(client); error != nil {
-		return error
-	}
-	response := new(dtos.ClientResponse)
-	if error := copier.Copy(response, &client); error != nil {
-		return error
-	}
-	return context.JSON(http.StatusCreated, response)
+	return context.JSON(http.StatusCreated, request)
 }
 
 func (handler *HttpClientHandler) handleUpdateClient(context echo.Context) error {

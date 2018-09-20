@@ -3,14 +3,15 @@ package models
 import (
 	"time"
 
-	"github.com/jinzhu/gorm"
-
 	"github.com/shopspring/decimal"
 )
 
 type Payment struct {
-	gorm.Model
-	LoanID        uint
-	PaymentAmount decimal.Decimal `gorm:"type:numeric"`
-	PaymentDate   time.Time
+	ID            uint            `gorm:"primary_key" json:"id"`
+	CreatedAt     time.Time       `json:"createdAt"`
+	UpdatedAt     time.Time       `json:"updatedAt"`
+	DeletedAt     *time.Time      `sql:"index" json:"deletedAt"`
+	LoanID        uint            `gorm:"not null" json:"loanID" validate:"required"`
+	PaymentAmount decimal.Decimal `gorm:"not null; type:numeric" json:"paymentAmount"`
+	PaymentDate   time.Time       `json:"paymentDate"`
 }

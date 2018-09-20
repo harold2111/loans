@@ -6,7 +6,6 @@ import (
 	"loans/utils"
 	"time"
 
-	"github.com/jinzhu/gorm"
 	"github.com/shopspring/decimal"
 )
 
@@ -18,27 +17,30 @@ const (
 )
 
 type Bill struct {
-	gorm.Model
-	LoanID              uint
-	State               string
-	PeriodStatus        string
-	Period              uint
-	BillStartDate       time.Time
-	BillEndDate         time.Time
-	PaymentDate         time.Time
-	InitialPrincipal    decimal.Decimal `gorm:"type:numeric"`
-	Payment             decimal.Decimal `gorm:"type:numeric"`
-	InterestRate        decimal.Decimal `gorm:"type:numeric"`
-	InterestOfPayment   decimal.Decimal `gorm:"type:numeric"`
-	PrincipalOfPayment  decimal.Decimal `gorm:"type:numeric"`
-	Paid                decimal.Decimal `gorm:"type:numeric"`
-	DaysLate            int
-	FeeLateDue          decimal.Decimal `gorm:"type:numeric"`
-	PaymentDue          decimal.Decimal `gorm:"type:numeric"`
-	TotalDue            decimal.Decimal `gorm:"type:numeric"`
-	PaidToPrincipal     decimal.Decimal `gorm:"type:numeric"`
-	FinalPrincipal      decimal.Decimal `gorm:"type:numeric"`
-	LastLiquidationDate time.Time
+	ID                  uint            `gorm:"primary_key" json:"id"`
+	CreatedAt           time.Time       `json:"createdAt"`
+	UpdatedAt           time.Time       `json:"updatedAt"`
+	DeletedAt           *time.Time      `sql:"index" json:"deletedAt"`
+	LoanID              uint            `json:"loanID"`
+	State               string          `json:"state"`
+	PeriodStatus        string          `json:"periodStatus"`
+	Period              uint            `json:"period"`
+	BillStartDate       time.Time       `json:"billStartDate"`
+	BillEndDate         time.Time       `json:"billEndDate"`
+	PaymentDate         time.Time       `json:"paymentDate"`
+	InitialPrincipal    decimal.Decimal `gorm:"type:numeric" json:"initialPrincipal"`
+	Payment             decimal.Decimal `gorm:"type:numeric" json:"payment"`
+	InterestRate        decimal.Decimal `gorm:"type:numeric" json:"interestRate"`
+	InterestOfPayment   decimal.Decimal `gorm:"type:numeric" json:"interestOfPayment"`
+	PrincipalOfPayment  decimal.Decimal `gorm:"type:numeric" json:"principalOfPayment"`
+	Paid                decimal.Decimal `gorm:"type:numeric" json:"paid"`
+	DaysLate            int             `json:"daysLate"`
+	FeeLateDue          decimal.Decimal `gorm:"type:numeric" json:"feeLateDue"`
+	PaymentDue          decimal.Decimal `gorm:"type:numeric" json:"paymentDue"`
+	TotalDue            decimal.Decimal `gorm:"type:numeric" json:"totalDue"`
+	PaidToPrincipal     decimal.Decimal `gorm:"type:numeric" json:"paidToPrincipal"`
+	FinalPrincipal      decimal.Decimal `gorm:"type:numeric" json:"finalPrincipal"`
+	LastLiquidationDate time.Time       `json:"lastLiquidationDate"`
 }
 
 func (bill *Bill) LiquidateBill(liquidationDate time.Time) {

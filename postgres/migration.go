@@ -17,11 +17,23 @@ func MigrateModel(db *gorm.DB) {
 
 	db.Model(&models.Client{}).Related(&models.Address{})
 
-	country := models.Country{Name: "Colombia"}
-	department := models.Department{Name: "Atlántico", Country: country}
-	city := models.City{Name: "Barranquilla", Department: department}
+	cities := []models.City{
+		{
+			Name: "Barranquilla",
+		},
+	}
+	departments := []models.Department{
+		{
+			Name:   "Atlántico",
+			Cities: cities,
+		},
+	}
+	country := models.Country{
+		Name:        "Colombia",
+		Departments: departments,
+	}
 
-	if error := db.Save(&city).Error; error != nil {
+	if error := db.Save(&country).Error; error != nil {
 		panic(error)
 	}
 
