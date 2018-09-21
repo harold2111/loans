@@ -9,6 +9,6 @@ type Address struct {
 	DeletedAt    *time.Time `sql:"index" json:"deletedAt"`
 	Address      string     `gorm:"not null" json:"address" validate:"required"`
 	ClientID     uint       `gorm:"not null" json:"clientID"`
-	DepartmentID uint       `gorm:"not null" json:"departmentID"`
 	CityID       uint       `gorm:"not null" json:"cityID" validate:"required"`
+	DepartmentID uint       `gorm:"not null" json:"departmentID"`
 }

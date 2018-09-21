@@ -12,5 +12,5 @@ type Client struct {
 	LastName       string     `gorm:"not null" json:"lastName" validate:"required"`
 	Telephone1     string     `gorm:"not null" json:"telephone1" validate:"required"`
 	Telephone2     string     `json:"telephone2"`
-	Addresses      []Address  `validate:"required,dive,required" json:"addresses" `
+	Addresses      []Address  `validate:"required,dive,required" json:"addresses,omitempty" `
 }

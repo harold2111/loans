@@ -24,19 +24,10 @@ func (s *clientService) FindAllClients() ([]models.Client, error) {
 }
 
 func (s *clientService) FindClientByID(clientID uint) (models.Client, error) {
-	var client models.Client
-	var addresses []models.Address
-	var err error
-
-	client, err = s.clientRepository.Find(clientID)
+	client, err := s.clientRepository.Find(clientID)
 	if err != nil {
 		return client, err
 	}
-	addresses, err = s.clientRepository.FindClientAddress(clientID)
-	if err != nil {
-		return client, err
-	}
-	client.Addresses = addresses
 	return client, nil
 }
 
@@ -48,9 +39,6 @@ func (s *clientService) CreateClient(client *models.Client) error {
 }
 
 func (s *clientService) UpdateClient(client *models.Client) error {
-	if exist, error := s.clientRepository.ClientExist(client.ID); !exist {
-		return error
-	}
 	if error := s.addDepartmentIDToAddress(client.Addresses); error != nil {
 		return error
 	}

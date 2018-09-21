@@ -4,6 +4,7 @@ const (
 	IdentificationDuplicate = "IdentificationDuplicate"
 	AddressDuplicate        = "AddressDuplicate"
 	AddressFieldRequired    = "AddressFieldRequired"
+	AddressToUpdateNotExist = "AddressToUpdateDoesNotExist"
 	CityNotExist            = "CityNotExist"
 	ClientNotAddressFound   = "AddressNotExist"
 	ClientNotExist          = "ClientNotExist"
@@ -21,6 +22,7 @@ var ErrorMessages = map[string]string{
 	IdentificationDuplicate: "Identification '%v' already exists",
 	AddressDuplicate:        "Address '%v' already exists",
 	AddressFieldRequired:    "Address field in Address is mandatory",
+	AddressToUpdateNotExist: "Address '%v' to update does not exist",
 	CityNotExist:            "City '%v' not exist",
 	ClientNotAddressFound:   "No addresses found for client '%v'",
 	ClientNotExist:          "Client '%v' not exist",

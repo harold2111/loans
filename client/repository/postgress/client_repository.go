@@ -27,7 +27,7 @@ func NewClientRepository(db *gorm.DB) (client.ClientRepository, error) {
 
 func (r *clientRepository) FindAll() ([]models.Client, error) {
 	var clients []models.Client
-	response := r.db.Find(&clients)
+	response := r.db.Preload("Addresses").Find(&clients)
 	if error := response.Error; error != nil {
 		return nil, error
 	}
@@ -36,7 +36,7 @@ func (r *clientRepository) FindAll() ([]models.Client, error) {
 
 func (r *clientRepository) Find(clientID uint) (models.Client, error) {
 	var client models.Client
-	response := r.db.First(&client, clientID)
+	response := r.db.Preload("Addresses").First(&client, clientID)
 	if error := response.Error; error != nil {
 		if response.RecordNotFound() {
 			messagesParameters := []interface{}{clientID}
@@ -60,14 +60,26 @@ func (r *clientRepository) Store(client *models.Client) error {
 }
 
 func (r *clientRepository) Update(client *models.Client) error {
-	error := r.db.Save(client).Error
-	if error != nil {
-		if isUniqueConstraintError(error, uniqueConstraintIdentification) {
+	if exist, err := r.ClientExist(client.ID); !exist {
+		return err
+	}
+	currentAddresses, err := r.FindClientAddress(client.ID)
+	if err != nil {
+		return err
+	}
+	toCreateAddresses, toUpdateAddresses, err := addressesToCreateUpdate(currentAddresses, client.Addresses)
+	if err != nil {
+		return err
+	}
+	toCreateAddreses := 
+	err = r.db.Save(client).Error
+	if err != nil {
+		if isUniqueConstraintError(err, uniqueConstraintIdentification) {
 			messagesParameters := []interface{}{client.Identification}
 			return &errors.GracefulError{ErrorCode: errors.IdentificationDuplicate, MessagesParameters: messagesParameters}
 		}
 	}
-	return error
+	return err
 }
 
 func (r *clientRepository) ClientExist(clientID uint) (bool, error) {
@@ -97,6 +109,42 @@ func removeIDs(client *models.Client) {
 	client.ID = 0
 	for index := 0; index < len(client.Addresses); index++ {
 		client.Addresses[index].ID = 0
+	}
+}
+
+func addressesToCreateUpdate(currents []models.Address, addresses []models.Address) ([]models.Address, []models.Address, error) {
+	var addressesToCreate []models.Address
+	var addressesToUpdate []models.Address
+	
+	for _, address := range addresses {
+		if address.ID == 0 {
+			addressesToCreate = append(addressesToCreate, address)
+		}else {
+			if replaceUpdateAddressInCurrentAddress(currents, address.ID){
+				addressesToUpdate = append(addressesToUpdate, address)
+			}else{
+				messagesParameters := []interface{}{address.ID}
+			    return nil, nil, &errors.GracefulError{
+					ErrorCode: errors.ClientNotAddressFound, 
+					MessagesParameters: messagesParameters,
+				}
+			}
+			
+		}
+	}
+	return addressesToCreate, addressesToUpdate, nil
+}
+
+func replaceUpdateAddressInCurrentAddress(currentAddresses []models.Address, toUpdateAddress models.Address) error {
+	for i, address := range addresses {
+		if address.ID == toFindAddressID {
+			currentAddresses[i] = toUpdateAddress
+		}
+	}
+	return messagesParameters := []interface{}{toUpdateAddress.ID}
+	return &errors.GracefulError{
+		ErrorCode: errors.ClientNotAddressFound, 
+		MessagesParameters: messagesParameters,
 	}
 }
 
