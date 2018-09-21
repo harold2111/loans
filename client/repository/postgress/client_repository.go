@@ -27,7 +27,7 @@ func NewClientRepository(db *gorm.DB) (client.ClientRepository, error) {
 
 func (r *clientRepository) FindAll() ([]models.Client, error) {
 	var clients []models.Client
-	response := r.db.Preload("Addresses").Find(&clients)
+	response := r.db.Find(&clients)
 	if error := response.Error; error != nil {
 		return nil, error
 	}
@@ -48,6 +48,7 @@ func (r *clientRepository) Find(clientID uint) (models.Client, error) {
 }
 
 func (r *clientRepository) Store(client *models.Client) error {
+	removeIDs(client)
 	error := r.db.Create(client).Error
 	if error != nil {
 		if isUniqueConstraintError(error, uniqueConstraintIdentification) {
@@ -90,6 +91,13 @@ func (r *clientRepository) FindClientAddress(clientID uint) ([]models.Address, e
 		return nil, error
 	}
 	return addresses, nil
+}
+
+func removeIDs(client *models.Client) {
+	client.ID = 0
+	for index := 0; index < len(client.Addresses); index++ {
+		client.Addresses[index].ID = 0
+	}
 }
 
 func isUniqueConstraintError(err error, constraintName string) bool {
