@@ -67,11 +67,12 @@ func (r *clientRepository) Update(client *models.Client) error {
 	if err != nil {
 		return err
 	}
-	toCreateAddresses, toUpdateAddresses, err := addressesToCreateUpdate(currentAddresses, client.Addresses)
+	var mergedAddresses []models.Address
+	mergedAddresses, err = addressesToCreateUpdate(currentAddresses, client.Addresses)
 	if err != nil {
 		return err
 	}
-	toCreateAddreses := 
+	client.Addresses = mergedAddresses
 	err = r.db.Save(client).Error
 	if err != nil {
 		if isUniqueConstraintError(err, uniqueConstraintIdentification) {
@@ -112,38 +113,30 @@ func removeIDs(client *models.Client) {
 	}
 }
 
-func addressesToCreateUpdate(currents []models.Address, addresses []models.Address) ([]models.Address, []models.Address, error) {
-	var addressesToCreate []models.Address
-	var addressesToUpdate []models.Address
-	
-	for _, address := range addresses {
-		if address.ID == 0 {
-			addressesToCreate = append(addressesToCreate, address)
-		}else {
-			if replaceUpdateAddressInCurrentAddress(currents, address.ID){
-				addressesToUpdate = append(addressesToUpdate, address)
-			}else{
-				messagesParameters := []interface{}{address.ID}
-			    return nil, nil, &errors.GracefulError{
-					ErrorCode: errors.ClientNotAddressFound, 
-					MessagesParameters: messagesParameters,
-				}
+func addressesToCreateUpdate(currents []models.Address, sentAddresses []models.Address) ([]models.Address, error) {
+	mergedAddress := currents
+	for _, sentAddress := range sentAddresses {
+		if sentAddress.ID == 0 {
+			mergedAddress = append(mergedAddress, sentAddress)
+		} else {
+			if err := replaceUpdateAddressInCurrentAddress(mergedAddress, sentAddress); err != nil {
+				return nil, err
 			}
-			
 		}
 	}
-	return addressesToCreate, addressesToUpdate, nil
+	return mergedAddress, nil
 }
 
 func replaceUpdateAddressInCurrentAddress(currentAddresses []models.Address, toUpdateAddress models.Address) error {
-	for i, address := range addresses {
-		if address.ID == toFindAddressID {
+	for i, address := range currentAddresses {
+		if address.ID == toUpdateAddress.ID {
 			currentAddresses[i] = toUpdateAddress
+			return nil
 		}
 	}
-	return messagesParameters := []interface{}{toUpdateAddress.ID}
+	messagesParameters := []interface{}{toUpdateAddress.ID}
 	return &errors.GracefulError{
-		ErrorCode: errors.ClientNotAddressFound, 
+		ErrorCode:          errors.ClientNotAddressFound,
 		MessagesParameters: messagesParameters,
 	}
 }
