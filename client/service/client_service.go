@@ -49,7 +49,9 @@ func (s *clientService) CreateClient(client *models.Client) error {
 }
 
 func (s *clientService) UpdateClient(client *models.Client) error {
-	client.Addresses = nil
+	if exist, err := s.clientExist(client.ID); !exist {
+		return err
+	}
 	if error := utils.ValidateStruct(client); error != nil {
 		return error
 	}
@@ -68,15 +70,24 @@ func (s *clientService) CreateAddressClient(address *models.Address) error {
 	if error := utils.ValidateStruct(address); error != nil {
 		return error
 	}
+	if exist, err := s.clientExist(address.ClientID); !exist {
+		return err
+	}
+	if _, err := s.clientRepository.FindAddressByIDAndClientID(address.ID, address.ClientID); err == nil {
+		return &errors.RecordNotFound{ErrorCode: errors.AddressDuplicate}
+	}
 	if err := s.validateCityID(address.CityID); err != nil {
 		return err
 	}
-	return s.clientRepository.CreateClientAddress(address)
+	return s.clientRepository.CreateAddressClient(address)
 }
 
 func (s *clientService) UpdateAdressClient(address *models.Address) error {
 	if error := utils.ValidateStruct(address); error != nil {
 		return error
+	}
+	if _, err := s.clientRepository.FindAddressByIDAndClientID(address.ID, address.ClientID); err != nil {
+		return err
 	}
 	if err := s.validateCityID(address.CityID); err != nil {
 		return err
@@ -87,4 +98,14 @@ func (s *clientService) UpdateAdressClient(address *models.Address) error {
 func (s *clientService) validateCityID(cityID uint) error {
 	_, err := s.locationRepository.FindCity(cityID)
 	return err
+}
+
+func (s *clientService) clientExist(clientID uint) (bool, error) {
+	if _, error := s.clientRepository.Find(clientID); error != nil {
+		if _, ok := error.(*errors.RecordNotFound); ok {
+			return false, error
+		}
+		return false, error
+	}
+	return true, nil
 }
