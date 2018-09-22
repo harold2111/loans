@@ -24,7 +24,7 @@ func NewClientHttpHandler(e *echo.Echo, clientService client.ClientService) {
 
 	e.GET("/api/clients/:id/addresses", handler.handleFindAddressesByClientID)
 	e.POST("/api/clients/:id/addresses", handler.handleCreateAddressClient)
-	e.PUT("/api/clients/:id/addresses/:addressID", handler.handleCreateAddressClient)
+	e.PUT("/api/clients/:id/addresses/:addressID", handler.handleUpdatAddressClient)
 }
 
 func (handler *HttpClientHandler) handleFindAllClients(context echo.Context) error {
