@@ -2,11 +2,13 @@ package errors
 
 const (
 	IdentificationDuplicate = "IdentificationDuplicate"
+	AddressNotExist         = "AddressNotExist"
 	AddressDuplicate        = "AddressDuplicate"
 	AddressFieldRequired    = "AddressFieldRequired"
 	AddressToUpdateNotExist = "AddressToUpdateDoesNotExist"
+	AtLeastOneAddress       = "AtLeastOneAddress"
 	CityNotExist            = "CityNotExist"
-	ClientNotAddressFound   = "AddressNotExist"
+	ClientNotAddressFound   = "ClientNotAddressFound"
 	ClientNotExist          = "ClientNotExist"
 	LoanNotExist            = "LoanNotExist"
 	BillAlreadyExist        = "BillAlreadyExist"
@@ -20,7 +22,9 @@ const (
 
 var ErrorMessages = map[string]string{
 	IdentificationDuplicate: "Identification '%v' already exists",
+	AddressNotExist:         "The address %v does not exist",
 	AddressDuplicate:        "Address '%v' already exists",
+	AtLeastOneAddress:       "At least one address is mandatory",
 	AddressFieldRequired:    "Address field in Address is mandatory",
 	AddressToUpdateNotExist: "Address '%v' to update does not exist",
 	CityNotExist:            "City '%v' not exist",

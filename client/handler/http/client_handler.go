@@ -3,7 +3,6 @@ package http
 import (
 	"loans/client"
 	"loans/models"
-	"loans/utils"
 	"net/http"
 	"strconv"
 
@@ -22,6 +21,10 @@ func NewClientHttpHandler(e *echo.Echo, clientService client.ClientService) {
 	e.GET("/api/clients/:id", handler.handleFindClientByID)
 	e.POST("/api/clients", handler.handleCreateClient)
 	e.PUT("/api/clients/:id", handler.handleUpdateClient)
+
+	e.GET("/api/clients/:id/addresses", handler.handleFindAddressesByClientID)
+	e.POST("/api/clients/:id/addresses", handler.handleCreateAddressClient)
+	e.PUT("/api/clients/:id/addresses/:addressID", handler.handleCreateAddressClient)
 }
 
 func (handler *HttpClientHandler) handleFindAllClients(context echo.Context) error {
@@ -49,9 +52,6 @@ func (handler *HttpClientHandler) handleCreateClient(context echo.Context) error
 	if error := context.Bind(request); error != nil {
 		return error
 	}
-	if error := utils.ValidateStruct(request); error != nil {
-		return error
-	}
 	if error := clientService.CreateClient(request); error != nil {
 		return error
 	}
@@ -65,12 +65,51 @@ func (handler *HttpClientHandler) handleUpdateClient(context echo.Context) error
 	if error := context.Bind(client); error != nil {
 		return error
 	}
-	if error := utils.ValidateStruct(client); error != nil {
-		return error
-	}
 	client.ID = uint(id)
 	if error := clientService.UpdateClient(client); error != nil {
 		return error
 	}
 	return context.JSON(http.StatusCreated, client)
+}
+
+func (handler *HttpClientHandler) handleFindAddressesByClientID(context echo.Context) error {
+	clientService := handler.ClientService
+	clientID, _ := strconv.Atoi(context.Param("id"))
+	addresses, err := clientService.FindAddressesByClientID(uint(clientID))
+	if err != nil {
+		return err
+	}
+	return context.JSON(http.StatusOK, addresses)
+}
+
+func (handler *HttpClientHandler) handleCreateAddressClient(context echo.Context) error {
+	clientService := handler.ClientService
+	clientID, _ := strconv.Atoi(context.Param("id"))
+	address := new(models.Address)
+	if error := context.Bind(address); error != nil {
+		return error
+	}
+	address.ClientID = uint(clientID)
+	err := clientService.CreateAddressClient(address)
+	if err != nil {
+		return err
+	}
+	return context.JSON(http.StatusOK, address)
+}
+
+func (handler *HttpClientHandler) handleUpdatAddressClient(context echo.Context) error {
+	clientService := handler.ClientService
+	clientID, _ := strconv.Atoi(context.Param("id"))
+	addressID, _ := strconv.Atoi(context.Param("addressID"))
+	address := new(models.Address)
+	if error := context.Bind(address); error != nil {
+		return error
+	}
+	address.ClientID = uint(clientID)
+	address.ID = uint(addressID)
+	err := clientService.UpdateAdressClient(address)
+	if err != nil {
+		return err
+	}
+	return context.JSON(http.StatusOK, address)
 }

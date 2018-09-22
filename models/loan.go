@@ -13,9 +13,9 @@ const (
 
 type Loan struct {
 	ID                 uint            `gorm:"primary_key" json:"id"`
-	CreatedAt          time.Time       `json:"createdAt"`
-	UpdatedAt          time.Time       `json:"updatedAt"`
-	DeletedAt          *time.Time      `sql:"index" json:"deletedAt" `
+	CreatedAt          time.Time       `json:"-"`
+	UpdatedAt          time.Time       `json:"-"`
+	DeletedAt          *time.Time      `sql:"index" json:"-" `
 	Principal          decimal.Decimal `gorm:"type:numeric" json:"principal"`
 	InterestRatePeriod decimal.Decimal `gorm:"type:numeric" json:"interestRatePeriod"`
 	PeriodNumbers      uint            `json:"periodNumbers"`

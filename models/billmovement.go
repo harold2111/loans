@@ -9,9 +9,9 @@ import (
 
 type BillMovement struct {
 	ID                     uint            `gorm:"primary_key" json:"id"`
-	CreatedAt              time.Time       `json:"createdAt"`
-	UpdatedAt              time.Time       `json:"updatedAt"`
-	DeletedAt              *time.Time      `sql:"index" json:"deletedAt"`
+	CreatedAt              time.Time       `json:"-"`
+	UpdatedAt              time.Time       `json:"-"`
+	DeletedAt              *time.Time      `sql:"index" json:"-"`
 	BillID                 uint            `json:"billID"`
 	PaymentID              uint            `json:"ptartDate"`
 	MovementDate           time.Time       `json:"movementDate"`

@@ -2,8 +2,10 @@ package service
 
 import (
 	"loans/client"
+	"loans/errors"
 	"loans/location"
 	"loans/models"
+	"loans/utils"
 )
 
 type clientService struct {
@@ -32,26 +34,57 @@ func (s *clientService) FindClientByID(clientID uint) (models.Client, error) {
 }
 
 func (s *clientService) CreateClient(client *models.Client) error {
-	if error := s.addDepartmentIDToAddress(client.Addresses); error != nil {
+	if len(client.Addresses) == 0 {
+		return &errors.GracefulError{ErrorCode: errors.AtLeastOneAddress}
+	}
+	for _, address := range client.Addresses {
+		if err := s.validateCityID(address.CityID); err != nil {
+			return err
+		}
+	}
+	if error := utils.ValidateStruct(client); error != nil {
 		return error
 	}
-	return s.clientRepository.Store(client)
+	return s.clientRepository.Create(client)
 }
 
 func (s *clientService) UpdateClient(client *models.Client) error {
-	if error := s.addDepartmentIDToAddress(client.Addresses); error != nil {
+	client.Addresses = nil
+	if error := utils.ValidateStruct(client); error != nil {
 		return error
 	}
 	return s.clientRepository.Update(client)
 }
 
-func (s *clientService) addDepartmentIDToAddress(addresses []models.Address) error {
-	for i, address := range addresses {
-		city, err := s.locationRepository.FindCity(address.CityID)
-		if err != nil {
-			return err
-		}
-		addresses[i].DepartmentID = city.ID
+func (s *clientService) FindAddressesByClientID(clientID uint) ([]models.Address, error) {
+	addresses, err := s.clientRepository.FindAddressesByClientID(clientID)
+	if err != nil {
+		return nil, err
 	}
-	return nil
+	return addresses, nil
+}
+
+func (s *clientService) CreateAddressClient(address *models.Address) error {
+	if error := utils.ValidateStruct(address); error != nil {
+		return error
+	}
+	if err := s.validateCityID(address.CityID); err != nil {
+		return err
+	}
+	return s.clientRepository.CreateClientAddress(address)
+}
+
+func (s *clientService) UpdateAdressClient(address *models.Address) error {
+	if error := utils.ValidateStruct(address); error != nil {
+		return error
+	}
+	if err := s.validateCityID(address.CityID); err != nil {
+		return err
+	}
+	return s.clientRepository.UpdateAddressClient(address)
+}
+
+func (s *clientService) validateCityID(cityID uint) error {
+	_, err := s.locationRepository.FindCity(cityID)
+	return err
 }
