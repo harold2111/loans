@@ -56,7 +56,7 @@ func (r *clientRepository) Create(client *models.Client) error {
 	if error != nil {
 		if isUniqueConstraintError(error, uniqueConstraintIdentification) {
 			messagesParameters := []interface{}{client.Identification}
-			return &errors.GracefulError{MessagesParameters: messagesParameters}
+			return &errors.GracefulError{ErrorCode: errors.IdentificationDuplicate, MessagesParameters: messagesParameters}
 		}
 	}
 	return error
@@ -69,6 +69,13 @@ func (r *clientRepository) Update(client *models.Client) error {
 			messagesParameters := []interface{}{client.Identification}
 			return &errors.GracefulError{ErrorCode: errors.IdentificationDuplicate, MessagesParameters: messagesParameters}
 		}
+	}
+	return nil
+}
+
+func (r *clientRepository) Delete(client *models.Client) error {
+	if err := r.db.Delete(client).Error; err != nil {
+		return err
 	}
 	return nil
 }
@@ -110,6 +117,13 @@ func (r *clientRepository) CreateAddressClient(address *models.Address) error {
 
 func (r *clientRepository) UpdateAddressClient(address *models.Address) error {
 	if err := r.db.Save(address).Error; err != nil {
+		return err
+	}
+	return nil
+}
+
+func (r *clientRepository) DeleteAddressClient(address *models.Address) error {
+	if err := r.db.Delete(address).Error; err != nil {
 		return err
 	}
 	return nil

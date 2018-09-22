@@ -58,6 +58,14 @@ func (s *clientService) UpdateClient(client *models.Client) error {
 	return s.clientRepository.Update(client)
 }
 
+func (s *clientService) DeleteClient(clientID uint) error {
+	client, err := s.FindClientByID(clientID)
+	if err != nil {
+		return err
+	}
+	return s.clientRepository.Delete(&client)
+}
+
 func (s *clientService) FindAddressesByClientID(clientID uint) ([]models.Address, error) {
 	addresses, err := s.clientRepository.FindAddressesByClientID(clientID)
 	if err != nil {
@@ -93,6 +101,14 @@ func (s *clientService) UpdateAdressClient(address *models.Address) error {
 		return err
 	}
 	return s.clientRepository.UpdateAddressClient(address)
+}
+
+func (s *clientService) DeleteAddressClient(clientID uint, addressID uint) error {
+	address, err := s.clientRepository.FindAddressByIDAndClientID(addressID, clientID)
+	if err != nil {
+		return err
+	}
+	return s.clientRepository.DeleteAddressClient(&address)
 }
 
 func (s *clientService) validateCityID(cityID uint) error {

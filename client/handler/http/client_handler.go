@@ -21,10 +21,12 @@ func NewClientHttpHandler(e *echo.Echo, clientService client.ClientService) {
 	e.GET("/api/clients/:id", handler.handleFindClientByID)
 	e.POST("/api/clients", handler.handleCreateClient)
 	e.PUT("/api/clients/:id", handler.handleUpdateClient)
+	e.DELETE("/api/clients/:id", handler.handleDeleteClient)
 
 	e.GET("/api/clients/:id/addresses", handler.handleFindAddressesByClientID)
 	e.POST("/api/clients/:id/addresses", handler.handleCreateAddressClient)
-	e.PUT("/api/clients/:id/addresses/:addressID", handler.handleUpdatAddressClient)
+	e.PUT("/api/clients/:id/addresses/:addressID", handler.handleUpdateAddressClient)
+	e.DELETE("/api/clients/:id/addresses/:addressID", handler.handleDeletAddressClient)
 }
 
 func (handler *HttpClientHandler) handleFindAllClients(context echo.Context) error {
@@ -72,6 +74,16 @@ func (handler *HttpClientHandler) handleUpdateClient(context echo.Context) error
 	return context.JSON(http.StatusCreated, client)
 }
 
+func (handler *HttpClientHandler) handleDeleteClient(context echo.Context) error {
+	clientService := handler.ClientService
+	clientID, _ := strconv.Atoi(context.Param("id"))
+	err := clientService.DeleteClient(uint(clientID))
+	if err != nil {
+		return err
+	}
+	return context.JSON(http.StatusAccepted, "OK")
+}
+
 func (handler *HttpClientHandler) handleFindAddressesByClientID(context echo.Context) error {
 	clientService := handler.ClientService
 	clientID, _ := strconv.Atoi(context.Param("id"))
@@ -97,7 +109,7 @@ func (handler *HttpClientHandler) handleCreateAddressClient(context echo.Context
 	return context.JSON(http.StatusOK, address)
 }
 
-func (handler *HttpClientHandler) handleUpdatAddressClient(context echo.Context) error {
+func (handler *HttpClientHandler) handleUpdateAddressClient(context echo.Context) error {
 	clientService := handler.ClientService
 	clientID, _ := strconv.Atoi(context.Param("id"))
 	addressID, _ := strconv.Atoi(context.Param("addressID"))
@@ -112,4 +124,15 @@ func (handler *HttpClientHandler) handleUpdatAddressClient(context echo.Context)
 		return err
 	}
 	return context.JSON(http.StatusOK, address)
+}
+
+func (handler *HttpClientHandler) handleDeletAddressClient(context echo.Context) error {
+	clientService := handler.ClientService
+	clientID, _ := strconv.Atoi(context.Param("id"))
+	addressID, _ := strconv.Atoi(context.Param("addressID"))
+	err := clientService.DeleteAddressClient(uint(clientID), uint(addressID))
+	if err != nil {
+		return err
+	}
+	return context.JSON(http.StatusAccepted, "OK")
 }
