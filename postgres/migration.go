@@ -17,15 +17,36 @@ func MigrateModel(db *gorm.DB) {
 
 	db.Model(&models.Client{}).Related(&models.Address{})
 
-	cities := []models.City{
+	atlanticoCities := []models.City{
 		{
 			Name: "Barranquilla",
+		},
+		{
+			Name: "Soledad",
+		},
+		{
+			Name: "Pto Colombia",
+		},
+	}
+	antioquiaCities := []models.City{
+		{
+			Name: "Medellin",
+		},
+		{
+			Name: "Envigado",
+		},
+		{
+			Name: "Sabaneta",
 		},
 	}
 	departments := []models.Department{
 		{
 			Name:   "Atlántico",
-			Cities: cities,
+			Cities: atlanticoCities,
+		},
+		{
+			Name:   "Antioquia",
+			Cities: antioquiaCities,
 		},
 	}
 	country := models.Country{
