@@ -13,4 +13,5 @@ type ClientService interface {
 	CreateAddressClient(address *models.Address) error
 	UpdateAdressClient(address *models.Address) error
 	DeleteAddressClient(clientID uint, addressID uint) error
+	FindAddressByClientIDAndAddressID(addressID uint, clientID uint) (*models.Address, error)
 }

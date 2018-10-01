@@ -27,6 +27,8 @@ func NewClientHttpHandler(e *echo.Echo, clientService client.ClientService) {
 	e.POST("/api/clients/:id/addresses", handler.handleCreateAddressClient)
 	e.PUT("/api/clients/:id/addresses/:addressID", handler.handleUpdateAddressClient)
 	e.DELETE("/api/clients/:id/addresses/:addressID", handler.handleDeletAddressClient)
+
+	e.GET("/api/clients/:id/addresses/:addressID", handler.handleFindAddressByClientIDAndAddressID)
 }
 
 func (handler *HttpClientHandler) handleFindAllClients(context echo.Context) error {
@@ -135,4 +137,15 @@ func (handler *HttpClientHandler) handleDeletAddressClient(context echo.Context)
 		return err
 	}
 	return context.JSON(http.StatusAccepted, "OK")
+}
+
+func (handler *HttpClientHandler) handleFindAddressByClientIDAndAddressID(context echo.Context) error {
+	clientService := handler.ClientService
+	addressID, _ := strconv.Atoi(context.Param("addressID"))
+	clientID, _ := strconv.Atoi(context.Param("id"))
+	address, err := clientService.FindAddressByClientIDAndAddressID(uint(addressID), uint(clientID))
+	if err != nil {
+		return err
+	}
+	return context.JSON(http.StatusAccepted, address)
 }

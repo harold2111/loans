@@ -10,7 +10,7 @@ type ClientRepository interface {
 	Update(client *models.Client) error
 	Delete(client *models.Client) error
 	FindAddressesByClientID(addressID uint) ([]models.Address, error)
-	FindAddressByIDAndClientID(clientID uint, ClientID uint) (models.Address, error)
+	FindAddressByIDAndClientID(addressID uint, ClientID uint) (*models.Address, error)
 	CreateAddressClient(address *models.Address) error
 	UpdateAddressClient(address *models.Address) error
 	DeleteAddressClient(address *models.Address) error

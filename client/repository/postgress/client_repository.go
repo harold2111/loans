@@ -93,17 +93,17 @@ func (r *clientRepository) FindAddressesByClientID(clientID uint) ([]models.Addr
 	return addresses, nil
 }
 
-func (r *clientRepository) FindAddressByIDAndClientID(addressID uint, ClientID uint) (models.Address, error) {
+func (r *clientRepository) FindAddressByIDAndClientID(addressID uint, ClientID uint) (*models.Address, error) {
 	var address models.Address
 	response := r.db.Where("id = ? AND client_id = ?", addressID, ClientID).First(&address)
 	if error := response.Error; error != nil {
 		if response.RecordNotFound() {
 			messagesParameters := []interface{}{addressID}
-			return address, &errors.RecordNotFound{ErrorCode: errors.AddressNotExist, MessagesParameters: messagesParameters}
+			return &address, &errors.RecordNotFound{ErrorCode: errors.AddressNotExist, MessagesParameters: messagesParameters}
 		}
-		return address, error
+		return &address, error
 	}
-	return address, nil
+	return &address, nil
 
 }
 

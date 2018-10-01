@@ -108,7 +108,11 @@ func (s *clientService) DeleteAddressClient(clientID uint, addressID uint) error
 	if err != nil {
 		return err
 	}
-	return s.clientRepository.DeleteAddressClient(&address)
+	return s.clientRepository.DeleteAddressClient(address)
+}
+
+func (s *clientService) FindAddressByClientIDAndAddressID(addressID uint, clientID uint) (*models.Address, error) {
+	return s.clientRepository.FindAddressByIDAndClientID(addressID, clientID)
 }
 
 func (s *clientService) validateCityID(cityID uint) error {
