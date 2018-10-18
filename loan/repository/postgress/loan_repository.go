@@ -20,6 +20,15 @@ func NewLoanRepository(db *gorm.DB) (loan.LoanRepository, error) {
 	return r, nil
 }
 
+func (r *loanRepository) FindAll() ([]models.Loan, error) {
+	var loans []models.Loan
+	response := r.db.Find(&loans)
+	if error := response.Error; error != nil {
+		return nil, error
+	}
+	return loans, nil
+}
+
 func (r *loanRepository) FindLoanByID(loanID uint) (models.Loan, error) {
 	var loan models.Loan
 	respose := r.db.First(&loan, loanID)

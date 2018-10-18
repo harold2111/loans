@@ -23,6 +23,6 @@ type Loan struct {
 	StartDate          time.Time       `json:"startDate"`
 	CloseDateAgreed    time.Time       `json:"closeDateAgreed"`
 	CloseDate          *time.Time      `json:"CloseDate"`
-	State              string          `json:"state"`
+	State              string          `json:"status"`
 	ClientID           uint            `gorm:"not null" json:"clientID" validate:"required"`
 }

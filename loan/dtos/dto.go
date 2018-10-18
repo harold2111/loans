@@ -33,7 +33,7 @@ type LoanResponse struct {
 	commanLoanFields
 	PaymentAgreed   decimal.Decimal `json:"paymentAgreed"`
 	CloseDateAgreed time.Time       `json:"closeDateAgreed"`
-	State           string          `json:"state"`
+	State           string          `json:"status"`
 }
 
 type PaymentRequest struct {

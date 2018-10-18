@@ -19,8 +19,18 @@ func NewLoanHttpHandler(e *echo.Echo, loanService loan.LoanService) {
 	handler := &HttpLoanHandler{
 		LoanService: loanService,
 	}
+	e.GET("/api/loans", handler.handleFindAllLoans)
 	e.POST("/api/loans", handler.handleCreateLoan)
 	e.POST("/api/loans/payments", handler.handlePayLoan)
+}
+
+func (handler *HttpLoanHandler) handleFindAllLoans(context echo.Context) error {
+	loanService := handler.LoanService
+	loans, error := loanService.FindAllLoans()
+	if error != nil {
+		return error
+	}
+	return context.JSON(http.StatusOK, loans)
 }
 
 func (handler *HttpLoanHandler) handleCreateLoan(context echo.Context) error {

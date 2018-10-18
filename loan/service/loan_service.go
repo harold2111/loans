@@ -26,6 +26,10 @@ func NewLoanService(loanRepository loan.LoanRepository, clientRepository client.
 	}
 }
 
+func (s *loanService) FindAllLoans() ([]models.Loan, error) {
+	return s.loanRepository.FindAll()
+}
+
 func (s *loanService) CreateLoan(loan *models.Loan) error {
 	loan.State = models.LoanStateActive
 	loan.StartDate = loan.StartDate.In(config.DefaultLocation())

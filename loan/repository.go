@@ -4,6 +4,7 @@ import "loans/models"
 
 // Repository provides access a loan store.
 type LoanRepository interface {
+	FindAll() ([]models.Loan, error)
 	StoreLoan(loan *models.Loan) error
 	UpdateLoan(loan *models.Loan) error
 	FindLoanByID(loanID uint) (models.Loan, error)
