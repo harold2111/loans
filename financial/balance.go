@@ -5,10 +5,10 @@ import (
 )
 
 type Balance struct {
-	InitialPrincipal   decimal.Decimal
-	Payment            decimal.Decimal
-	InterestRatePeriod decimal.Decimal
-	ToInterest         decimal.Decimal
-	ToPrincipal        decimal.Decimal
-	FinalPrincipal     decimal.Decimal
+	InitialPrincipal   decimal.Decimal `json:"initialPrincipal"`
+	Payment            decimal.Decimal `json:"payment"`
+	InterestRatePeriod decimal.Decimal `json:"interestRatePeriod"`
+	ToInterest         decimal.Decimal `json:"toInterest"`
+	ToPrincipal        decimal.Decimal `json:"toPrincipal"`
+	FinalPrincipal     decimal.Decimal `json:"finalPrincipal"`
 }

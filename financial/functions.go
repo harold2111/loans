@@ -1,6 +1,7 @@
 package financial
 
 import (
+	"loans/config"
 	"strconv"
 
 	"github.com/shopspring/decimal"
@@ -22,6 +23,19 @@ func CalculatePayment(principal decimal.Decimal, interestRatePeriod decimal.Deci
 	return payment
 }
 
+func Amorititation(principal decimal.Decimal, interestRatePeriod decimal.Decimal, periodNumbers int) []Balance {
+	round := config.Round
+	balances := make([]Balance, periodNumbers)
+	balances[0].InitialPrincipal = principal.Truncate(round)
+	balances[0].Payment = CalculatePayment(principal, interestRatePeriod, periodNumbers).Truncate(round)
+	balances[0].InterestRatePeriod = interestRatePeriod.Truncate(round)
+	balances[0].calculateAmountBalance()
+	for period := 1; period < periodNumbers; period++ {
+		balances[period] = NextBalanceFromBefore(balances[period-1])
+	}
+	return balances
+}
+
 func BalanceExpectedInSpecificPeriod(principal decimal.Decimal, interestRatePeriod decimal.Decimal, periodNumbers int, specificPeriod int) Balance {
 	payment := CalculatePayment(principal, interestRatePeriod, periodNumbers)
 	initialBalance := Balance{}
@@ -38,22 +52,20 @@ func BalanceExpectedInSpecificPeriod(principal decimal.Decimal, interestRatePeri
 }
 
 func NextBalanceFromBefore(beforeBalance Balance) Balance {
+	round := config.Round
 	nextBalance := Balance{}
-	nextBalance.InitialPrincipal = beforeBalance.FinalPrincipal
-	nextBalance.Payment = beforeBalance.Payment
-	nextBalance.InterestRatePeriod = beforeBalance.InterestRatePeriod
+	nextBalance.InitialPrincipal = beforeBalance.FinalPrincipal.Truncate(round)
+	nextBalance.Payment = beforeBalance.Payment.Truncate(round)
+	nextBalance.InterestRatePeriod = beforeBalance.InterestRatePeriod.Truncate(round)
 	nextBalance.calculateAmountBalance()
 	return nextBalance
 }
 
 func (balance *Balance) calculateAmountBalance() {
-	balance.ToInterest = balance.InitialPrincipal.Mul(balance.InterestRatePeriod)
-	balanceInitialPlusInterest := balance.InitialPrincipal.Add(balance.ToInterest)
-	if balanceInitialPlusInterest.LessThanOrEqual(balance.Payment) {
-		balance.Payment = balanceInitialPlusInterest
-	}
-	balance.ToPrincipal = balance.Payment.Sub(balance.ToInterest)
-	balance.FinalPrincipal = balance.InitialPrincipal.Sub(balance.ToPrincipal)
+	round := config.Round
+	balance.ToInterest = balance.InitialPrincipal.Mul(balance.InterestRatePeriod).Truncate(round)
+	balance.ToPrincipal = balance.Payment.Sub(balance.ToInterest).Truncate(round)
+	balance.FinalPrincipal = balance.InitialPrincipal.Sub(balance.ToPrincipal).Truncate(round)
 }
 
 func CalculateInterestPastOfDueDIAN(effectiveAnnualInterestRate, paymentLate decimal.Decimal, daysLate int) decimal.Decimal {

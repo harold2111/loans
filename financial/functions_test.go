@@ -21,6 +21,20 @@ func TestCalculatePaymentExpectedSuccess(t *testing.T) {
 	}
 }
 
+func TestAmorititation(t *testing.T) {
+	principal := decimal.NewFromFloat(5000000)
+	interestRatePeriod := decimal.NewFromFloat(0.03)
+	periodNumbers := 24
+	amortitationTable := Amorititation(principal, interestRatePeriod, periodNumbers)
+	size := len(amortitationTable)
+	if size != periodNumbers {
+		t.Fatalf("Expected %v but got %v", periodNumbers, size)
+	}
+	if !amortitationTable[size-1].FinalPrincipal.Equal(decimal.Zero) {
+		t.Fatalf("Expected %v but got %v", decimal.Zero, amortitationTable[size-1])
+	}
+}
+
 func TestBalanceExpectedInSpecificPeriodExpectedSuccess(t *testing.T) {
 	principal := decimal.NewFromFloat(5000000)
 	interestRatePeriod := decimal.NewFromFloat(0.03)

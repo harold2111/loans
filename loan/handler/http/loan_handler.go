@@ -20,6 +20,7 @@ func NewLoanHttpHandler(e *echo.Echo, loanService loan.LoanService) {
 		LoanService: loanService,
 	}
 	e.GET("/api/loans", handler.handleFindAllLoans)
+	e.POST("/api/loans/simulate", handler.handleSimulateLoan)
 	e.POST("/api/loans", handler.handleCreateLoan)
 	e.POST("/api/loans/payments", handler.handlePayLoan)
 }
@@ -31,6 +32,23 @@ func (handler *HttpLoanHandler) handleFindAllLoans(context echo.Context) error {
 		return error
 	}
 	return context.JSON(http.StatusOK, loans)
+}
+
+func (handler *HttpLoanHandler) handleSimulateLoan(context echo.Context) error {
+	loanService := handler.LoanService
+	request := dtos.CreateLoan{}
+	if error := context.Bind(&request); error != nil {
+		return error
+	}
+	if error := utils.ValidateStruct(request); error != nil {
+		return error
+	}
+	loan := models.Loan{}
+	if error := copier.Copy(&loan, &request); error != nil {
+		return error
+	}
+	response := loanService.SimulateLoan(loan)
+	return context.JSON(http.StatusCreated, response)
 }
 
 func (handler *HttpLoanHandler) handleCreateLoan(context echo.Context) error {

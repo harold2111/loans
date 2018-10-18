@@ -1,5 +1,5 @@
 package config
 
 const (
-	Round int32 = 6
+	Round int32 = 4
 )

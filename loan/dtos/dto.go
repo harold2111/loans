@@ -15,8 +15,8 @@ type commanLoanFields struct {
 	Principal          decimal.Decimal `json:"principal"`
 	InterestRatePeriod decimal.Decimal `json:"interestRatePeriod"`
 	PeriodNumbers      uint            `json:"periodNumbers"`
-	StartDate          time.Time       `json:"startDate"`
-	ClientID           uint            `json:"clientID" validate:"required"`
+	StartDate          time.Time       `json:"-"`
+	ClientID           uint            `json:"clientID"`
 }
 
 type CreateLoan struct {

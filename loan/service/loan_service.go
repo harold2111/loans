@@ -30,6 +30,10 @@ func (s *loanService) FindAllLoans() ([]models.Loan, error) {
 	return s.loanRepository.FindAll()
 }
 
+func (s *loanService) SimulateLoan(loan models.Loan) []financial.Balance {
+	return financial.Amorititation(loan.Principal, loan.InterestRatePeriod, int(loan.PeriodNumbers))
+}
+
 func (s *loanService) CreateLoan(loan *models.Loan) error {
 	loan.State = models.LoanStateActive
 	loan.StartDate = loan.StartDate.In(config.DefaultLocation())
