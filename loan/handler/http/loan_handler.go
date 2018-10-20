@@ -36,24 +36,20 @@ func (handler *HttpLoanHandler) handleFindAllLoans(context echo.Context) error {
 
 func (handler *HttpLoanHandler) handleSimulateLoan(context echo.Context) error {
 	loanService := handler.LoanService
-	request := dtos.CreateLoan{}
+	var request dtos.CreateLoanRequest
 	if error := context.Bind(&request); error != nil {
 		return error
 	}
-	if error := utils.ValidateStruct(request); error != nil {
+	response, error := loanService.SimulateLoan(request)
+	if error != nil {
 		return error
 	}
-	loan := models.Loan{}
-	if error := copier.Copy(&loan, &request); error != nil {
-		return error
-	}
-	response := loanService.SimulateLoan(loan)
 	return context.JSON(http.StatusCreated, response)
 }
 
 func (handler *HttpLoanHandler) handleCreateLoan(context echo.Context) error {
 	loanService := handler.LoanService
-	request := dtos.CreateLoan{}
+	request := dtos.CreateLoanRequest{}
 	if error := context.Bind(&request); error != nil {
 		return error
 	}
@@ -76,7 +72,7 @@ func (handler *HttpLoanHandler) handleCreateLoan(context echo.Context) error {
 
 func (handler *HttpLoanHandler) handlePayLoan(context echo.Context) error {
 	loanService := handler.LoanService
-	request := dtos.PaymentRequest{}
+	request := dtos.CreatePaymentRequest{}
 	if error := context.Bind(&request); error != nil {
 		return error
 	}

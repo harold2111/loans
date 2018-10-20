@@ -23,7 +23,7 @@ func CalculatePayment(principal decimal.Decimal, interestRatePeriod decimal.Deci
 	return payment
 }
 
-func Amorititation(principal decimal.Decimal, interestRatePeriod decimal.Decimal, periodNumbers int) []Balance {
+func Amortizations(principal decimal.Decimal, interestRatePeriod decimal.Decimal, periodNumbers int) []Balance {
 	round := config.Round
 	balances := make([]Balance, periodNumbers)
 	balances[0].InitialPrincipal = principal.Truncate(round)

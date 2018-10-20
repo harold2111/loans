@@ -1,13 +1,13 @@
 package loan
 
 import (
-	"loans/financial"
+	"loans/loan/dtos"
 	"loans/models"
 )
 
 // LoanService is the interface that provides loan user case methods.
 type LoanService interface {
-	SimulateLoan(loan models.Loan) []financial.Balance
+	SimulateLoan(request dtos.CreateLoanRequest) (*dtos.LoanAmortizationsResponse, error)
 	FindAllLoans() ([]models.Loan, error)
 	CreateLoan(loan *models.Loan) error
 	PayLoan(payment *models.Payment) error

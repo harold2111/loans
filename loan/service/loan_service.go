@@ -6,10 +6,12 @@ import (
 	"loans/errors"
 	"loans/financial"
 	"loans/loan"
+	"loans/loan/dtos"
 	"loans/models"
 	"loans/utils"
 	"time"
 
+	"github.com/jinzhu/copier"
 	"github.com/shopspring/decimal"
 )
 
@@ -30,8 +32,33 @@ func (s *loanService) FindAllLoans() ([]models.Loan, error) {
 	return s.loanRepository.FindAll()
 }
 
-func (s *loanService) SimulateLoan(loan models.Loan) []financial.Balance {
-	return financial.Amorititation(loan.Principal, loan.InterestRatePeriod, int(loan.PeriodNumbers))
+func (s *loanService) SimulateLoan(request dtos.CreateLoanRequest) (*dtos.LoanAmortizationsResponse, error) {
+	if error := utils.ValidateStruct(request); error != nil {
+		return nil, error
+	}
+	loan := models.Loan{}
+	if error := copier.Copy(&loan, &request); error != nil {
+		return nil, error
+	}
+	amortizations := financial.Amortizations(loan.Principal, loan.InterestRatePeriod, int(loan.PeriodNumbers))
+	var response dtos.LoanAmortizationsResponse
+	response.ID = 0
+	response.Principal = request.Principal
+	response.InterestRatePeriod = request.InterestRatePeriod
+	response.PeriodNumbers = request.PeriodNumbers
+	response.StartDate = request.StartDate
+	response.ClientID = request.ClientID
+	response.PaymentAgreed = amortizations[0].Payment
+	response.Amortizations = make([]dtos.AmortizationResponse, len(amortizations))
+	for index, amoritzation := range amortizations {
+		response.Amortizations[index].InitialPrincipal = amoritzation.InitialPrincipal
+		response.Amortizations[index].Payment = amoritzation.Payment
+		response.Amortizations[index].InterestRatePeriod = amoritzation.InterestRatePeriod
+		response.Amortizations[index].ToInterest = amoritzation.ToInterest
+		response.Amortizations[index].ToPrincipal = amoritzation.ToPrincipal
+		response.Amortizations[index].FinalPrincipal = amoritzation.FinalPrincipal
+	}
+	return &response, nil
 }
 
 func (s *loanService) CreateLoan(loan *models.Loan) error {
@@ -165,7 +192,6 @@ func calculateCloseDateAgreed(loan *models.Loan) {
 
 func calculatePaymentOfLoan(loan *models.Loan) {
 	loan.PaymentAgreed = financial.CalculatePayment(loan.Principal, loan.InterestRatePeriod, int(loan.PeriodNumbers)).RoundBank(config.Round)
-
 }
 
 func balanceExpectedInSpecificPeriodOfLoan(loan models.Loan, period int) financial.Balance {

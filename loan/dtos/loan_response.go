@@ -6,7 +6,7 @@ import (
 	"github.com/shopspring/decimal"
 )
 
-type LoanDTO struct {
+type LoanResponse struct {
 	ID                 uint            `json:"id"`
 	Principal          decimal.Decimal `json:"principal"`
 	InterestRatePeriod decimal.Decimal `json:"interestRatePeriod"`
