@@ -1,8 +1,14 @@
 package dtos
 
-import "github.com/shopspring/decimal"
+import (
+	"time"
+
+	"github.com/shopspring/decimal"
+)
 
 type AmortizationResponse struct {
+	Period             int             `json:"period"`
+	PaymentDate        time.Time       `json:"paymentDate"`
 	InitialPrincipal   decimal.Decimal `json:"initialPrincipal"`
 	Payment            decimal.Decimal `json:"payment"`
 	InterestRatePeriod decimal.Decimal `json:"interestRatePeriod"`

@@ -51,6 +51,8 @@ func (s *loanService) SimulateLoan(request dtos.CreateLoanRequest) (*dtos.LoanAm
 	response.PaymentAgreed = amortizations[0].Payment
 	response.Amortizations = make([]dtos.AmortizationResponse, len(amortizations))
 	for index, amoritzation := range amortizations {
+		response.Amortizations[index].Period = index + 1
+		response.Amortizations[index].PaymentDate = utils.AddMothToTimeForPayment(response.StartDate, index+1)
 		response.Amortizations[index].InitialPrincipal = amoritzation.InitialPrincipal
 		response.Amortizations[index].Payment = amoritzation.Payment
 		response.Amortizations[index].InterestRatePeriod = amoritzation.InterestRatePeriod
