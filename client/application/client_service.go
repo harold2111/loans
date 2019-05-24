@@ -4,7 +4,6 @@ import (
 	clientDomain "loans/client/domain"
 	locationDomain "loans/location/domain"
 	"loans/shared/errors"
-	"loans/shared/models"
 	"loans/shared/utils"
 )
 
@@ -21,11 +20,11 @@ func NewClientService(clientRepository clientDomain.ClientRepository, locationRe
 	}
 }
 
-func (s *ClientService) FindAllClients() ([]models.Client, error) {
+func (s *ClientService) FindAllClients() ([]clientDomain.Client, error) {
 	return s.clientRepository.FindAll()
 }
 
-func (s *ClientService) FindClientByID(clientID uint) (models.Client, error) {
+func (s *ClientService) FindClientByID(clientID uint) (clientDomain.Client, error) {
 	client, err := s.clientRepository.Find(clientID)
 	if err != nil {
 		return client, err
@@ -33,7 +32,7 @@ func (s *ClientService) FindClientByID(clientID uint) (models.Client, error) {
 	return client, nil
 }
 
-func (s *ClientService) CreateClient(client *models.Client) error {
+func (s *ClientService) CreateClient(client *clientDomain.Client) error {
 	if len(client.Addresses) == 0 {
 		return &errors.GracefulError{ErrorCode: errors.AtLeastOneAddress}
 	}
@@ -48,7 +47,7 @@ func (s *ClientService) CreateClient(client *models.Client) error {
 	return s.clientRepository.Create(client)
 }
 
-func (s *ClientService) UpdateClient(client *models.Client) error {
+func (s *ClientService) UpdateClient(client *clientDomain.Client) error {
 	if exist, err := s.clientExist(client.ID); !exist {
 		return err
 	}
@@ -66,7 +65,7 @@ func (s *ClientService) DeleteClient(clientID uint) error {
 	return s.clientRepository.Delete(&client)
 }
 
-func (s *ClientService) FindAddressesByClientID(clientID uint) ([]models.Address, error) {
+func (s *ClientService) FindAddressesByClientID(clientID uint) ([]clientDomain.Address, error) {
 	addresses, err := s.clientRepository.FindAddressesByClientID(clientID)
 	if err != nil {
 		return nil, err
@@ -74,7 +73,7 @@ func (s *ClientService) FindAddressesByClientID(clientID uint) ([]models.Address
 	return addresses, nil
 }
 
-func (s *ClientService) CreateAddressClient(address *models.Address) error {
+func (s *ClientService) CreateAddressClient(address *clientDomain.Address) error {
 	if error := utils.ValidateStruct(address); error != nil {
 		return error
 	}
@@ -90,7 +89,7 @@ func (s *ClientService) CreateAddressClient(address *models.Address) error {
 	return s.clientRepository.CreateAddressClient(address)
 }
 
-func (s *ClientService) UpdateAdressClient(address *models.Address) error {
+func (s *ClientService) UpdateAdressClient(address *clientDomain.Address) error {
 	if error := utils.ValidateStruct(address); error != nil {
 		return error
 	}
@@ -111,7 +110,7 @@ func (s *ClientService) DeleteAddressClient(clientID uint, addressID uint) error
 	return s.clientRepository.DeleteAddressClient(address)
 }
 
-func (s *ClientService) FindAddressByClientIDAndAddressID(addressID uint, clientID uint) (*models.Address, error) {
+func (s *ClientService) FindAddressByClientIDAndAddressID(addressID uint, clientID uint) (*clientDomain.Address, error) {
 	return s.clientRepository.FindAddressByIDAndClientID(addressID, clientID)
 }
 

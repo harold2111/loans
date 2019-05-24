@@ -3,7 +3,6 @@ package postgres
 import (
 	loanDomain "loans/loan/domain"
 	"loans/shared/errors"
-	"loans/shared/models"
 
 	"github.com/jinzhu/gorm"
 )
@@ -20,8 +19,8 @@ func NewLoanRepository(db *gorm.DB) (loanDomain.LoanRepository, error) {
 	return r, nil
 }
 
-func (r *loanRepository) FindAll() ([]models.Loan, error) {
-	var loans []models.Loan
+func (r *loanRepository) FindAll() ([]loanDomain.Loan, error) {
+	var loans []loanDomain.Loan
 	response := r.db.Find(&loans)
 	if error := response.Error; error != nil {
 		return nil, error
@@ -29,8 +28,8 @@ func (r *loanRepository) FindAll() ([]models.Loan, error) {
 	return loans, nil
 }
 
-func (r *loanRepository) FindLoanByID(loanID uint) (models.Loan, error) {
-	var loan models.Loan
+func (r *loanRepository) FindLoanByID(loanID uint) (loanDomain.Loan, error) {
+	var loan loanDomain.Loan
 	respose := r.db.First(&loan, loanID)
 	if error := respose.Error; error != nil {
 		if respose.RecordNotFound() {
@@ -42,45 +41,45 @@ func (r *loanRepository) FindLoanByID(loanID uint) (models.Loan, error) {
 	return loan, nil
 }
 
-func (r *loanRepository) StoreLoan(loan *models.Loan) error {
+func (r *loanRepository) StoreLoan(loan *loanDomain.Loan) error {
 	return r.db.Create(loan).Error
 }
 
-func (r *loanRepository) UpdateLoan(loan *models.Loan) error {
+func (r *loanRepository) UpdateLoan(loan *loanDomain.Loan) error {
 	return r.db.Save(loan).Error
 }
 
-func (r *loanRepository) StoreBill(bill *models.Bill) error {
+func (r *loanRepository) StoreBill(bill *loanDomain.Bill) error {
 	return r.db.Create(bill).Error
 }
 
-func (r *loanRepository) UpdateBill(bill *models.Bill) error {
+func (r *loanRepository) UpdateBill(bill *loanDomain.Bill) error {
 	return r.db.Save(bill).Error
 }
 
-func (r *loanRepository) FindBillsByLoanID(loanID uint) ([]models.Bill, error) {
-	var bills []models.Bill
+func (r *loanRepository) FindBillsByLoanID(loanID uint) ([]loanDomain.Bill, error) {
+	var bills []loanDomain.Bill
 	r.db.Find(&bills, "loan_id = ?", loanID)
 	return bills, nil
 }
 
-func (r *loanRepository) FindBillsWithDueOrOpenOrderedByPeriodAsc(loanID uint) ([]models.Bill, error) {
-	var bills []models.Bill
-	r.db.Order("period").Find(&bills, "loan_id = ? AND state = ? OR period_status = ?", loanID, models.BillStateDue, models.PeriodStatusOpen)
+func (r *loanRepository) FindBillsWithDueOrOpenOrderedByPeriodAsc(loanID uint) ([]loanDomain.Bill, error) {
+	var bills []loanDomain.Bill
+	r.db.Order("period").Find(&bills, "loan_id = ? AND state = ? OR period_status = ?", loanID, loanDomain.BillStateDue, loanDomain.PeriodStatusOpen)
 	return bills, nil
 }
 
-func (r *loanRepository) FindBillOpenPeriodByLoanID(loanID uint) (models.Bill, error) {
-	bill := models.Bill{}
+func (r *loanRepository) FindBillOpenPeriodByLoanID(loanID uint) (loanDomain.Bill, error) {
+	bill := loanDomain.Bill{}
 	error := r.db.Raw("SELECT * FROM bills WHERE loan_id = ? AND period_status = ? AND period = (SELECT max(period) FROM bills where loan_id = ?)",
-		loanID, models.PeriodStatusOpen, loanID).Scan(&bill).Error
+		loanID, loanDomain.PeriodStatusOpen, loanID).Scan(&bill).Error
 	return bill, error
 }
 
-func (r *loanRepository) StoreBillMovement(billMovement *models.BillMovement) error {
+func (r *loanRepository) StoreBillMovement(billMovement *loanDomain.BillMovement) error {
 	return r.db.Create(billMovement).Error
 }
 
-func (r *loanRepository) StorePayment(payment *models.Payment) error {
+func (r *loanRepository) StorePayment(payment *loanDomain.Payment) error {
 	return r.db.Create(payment).Error
 }

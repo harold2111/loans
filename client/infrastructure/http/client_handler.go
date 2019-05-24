@@ -2,7 +2,7 @@ package http
 
 import (
 	clientApplication "loans/client/application"
-	"loans/shared/models"
+	clientDomain "loans/client/domain"
 	"net/http"
 	"strconv"
 
@@ -52,7 +52,7 @@ func (handler *HttpClientHandler) handleFindClientByID(context echo.Context) err
 
 func (handler *HttpClientHandler) handleCreateClient(context echo.Context) error {
 	clientService := handler.ClientService
-	request := new(models.Client)
+	request := new(clientDomain.Client)
 	if error := context.Bind(request); error != nil {
 		return error
 	}
@@ -64,7 +64,7 @@ func (handler *HttpClientHandler) handleCreateClient(context echo.Context) error
 
 func (handler *HttpClientHandler) handleUpdateClient(context echo.Context) error {
 	clientService := handler.ClientService
-	client := new(models.Client)
+	client := new(clientDomain.Client)
 	id, _ := strconv.Atoi(context.Param("id"))
 	if error := context.Bind(client); error != nil {
 		return error
@@ -99,7 +99,7 @@ func (handler *HttpClientHandler) handleFindAddressesByClientID(context echo.Con
 func (handler *HttpClientHandler) handleCreateAddressClient(context echo.Context) error {
 	clientService := handler.ClientService
 	clientID, _ := strconv.Atoi(context.Param("id"))
-	address := new(models.Address)
+	address := new(clientDomain.Address)
 	if error := context.Bind(address); error != nil {
 		return error
 	}
@@ -115,7 +115,7 @@ func (handler *HttpClientHandler) handleUpdateAddressClient(context echo.Context
 	clientService := handler.ClientService
 	clientID, _ := strconv.Atoi(context.Param("id"))
 	addressID, _ := strconv.Atoi(context.Param("addressID"))
-	address := new(models.Address)
+	address := new(clientDomain.Address)
 	if error := context.Bind(address); error != nil {
 		return error
 	}

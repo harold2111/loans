@@ -3,7 +3,6 @@ package postgres
 import (
 	locationDomain "loans/location/domain"
 	"loans/shared/errors"
-	"loans/shared/models"
 
 	"github.com/jinzhu/gorm"
 )
@@ -20,8 +19,8 @@ func NewLocationRepositoryy(db *gorm.DB) (locationDomain.LocationRepository, err
 	return r, nil
 }
 
-func (r *locationRepository) FindAllDepartments() ([]models.Department, error) {
-	var departments []models.Department
+func (r *locationRepository) FindAllDepartments() ([]locationDomain.Department, error) {
+	var departments []locationDomain.Department
 	response := r.db.Find(&departments)
 	if error := response.Error; error != nil {
 		return nil, error
@@ -29,8 +28,8 @@ func (r *locationRepository) FindAllDepartments() ([]models.Department, error) {
 	return departments, nil
 }
 
-func (r *locationRepository) FindCity(cityID uint) (*models.City, error) {
-	var city models.City
+func (r *locationRepository) FindCity(cityID uint) (*locationDomain.City, error) {
+	var city locationDomain.City
 	response := r.db.First(&city, cityID)
 	if error := response.Error; error != nil {
 		if response.RecordNotFound() {
@@ -42,8 +41,8 @@ func (r *locationRepository) FindCity(cityID uint) (*models.City, error) {
 	return &city, nil
 }
 
-func (r *locationRepository) FindCitiesByDepartmentID(departmentID uint) ([]models.City, error) {
-	var cities []models.City
+func (r *locationRepository) FindCitiesByDepartmentID(departmentID uint) ([]locationDomain.City, error) {
+	var cities []locationDomain.City
 	response := r.db.Find(&cities, "department_id = ?", departmentID)
 	if error := response.Error; error != nil {
 		if response.RecordNotFound() {

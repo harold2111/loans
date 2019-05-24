@@ -2,7 +2,6 @@ package application
 
 import (
 	locationDomain "loans/location/domain"
-	"loans/shared/models"
 )
 
 type LocationService struct {
@@ -16,10 +15,10 @@ func NewLocationService(locationRepository locationDomain.LocationRepository) Lo
 	}
 }
 
-func (s *LocationService) FindAllDepartments() ([]models.Department, error) {
+func (s *LocationService) FindAllDepartments() ([]locationDomain.Department, error) {
 	return s.locationRepository.FindAllDepartments()
 }
 
-func (s *LocationService) FindCitiesByDepartmentID(departmentID uint) ([]models.City, error) {
+func (s *LocationService) FindCitiesByDepartmentID(departmentID uint) ([]locationDomain.City, error) {
 	return s.locationRepository.FindCitiesByDepartmentID(departmentID)
 }

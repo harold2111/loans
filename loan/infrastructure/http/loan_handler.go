@@ -1,8 +1,9 @@
 package http
 
+//TODO: REMOVE CALLS TO MODEL
 import (
 	loanApplication "loans/loan/application"
-	"loans/shared/models"
+	loanDomain "loans/loan/domain"
 	"loans/shared/utils"
 	"net/http"
 
@@ -55,7 +56,7 @@ func (handler *HttpLoanHandler) handleCreateLoan(context echo.Context) error {
 	if error := utils.ValidateStruct(request); error != nil {
 		return error
 	}
-	loan := models.Loan{}
+	loan := loanDomain.Loan{}
 	if error := copier.Copy(&loan, &request); error != nil {
 		return error
 	}
@@ -75,7 +76,7 @@ func (handler *HttpLoanHandler) handlePayLoan(context echo.Context) error {
 	if error := context.Bind(&request); error != nil {
 		return error
 	}
-	payment := models.Payment{}
+	payment := loanDomain.Payment{}
 	if error := copier.Copy(&payment, &request); error != nil {
 		return error
 	}

@@ -1,7 +1,9 @@
 package postgres
 
 import (
-	"loans/shared/models"
+	clientnDomain "loans/client/domain"
+	loanDomain "loans/loan/domain"
+	locationDomain "loans/location/domain"
 
 	"github.com/jinzhu/gorm"
 )
@@ -9,15 +11,15 @@ import (
 func MigrateModel(db *gorm.DB) {
 	db.LogMode(true)
 
-	db.DropTableIfExists(&models.Client{}, &models.Address{}, &models.City{}, &models.Department{},
-		&models.Country{}, &models.Loan{}, &models.Bill{}, &models.BillMovement{}, &models.Payment{})
+	db.DropTableIfExists(&clientnDomain.Client{}, &clientnDomain.Address{}, &locationDomain.City{}, &locationDomain.Department{},
+		&locationDomain.Country{}, &loanDomain.Loan{}, &loanDomain.Bill{}, &loanDomain.BillMovement{}, &loanDomain.Payment{})
 
-	db.CreateTable(&models.Client{}, &models.Address{}, &models.City{}, &models.Department{},
-		&models.Country{}, &models.Loan{}, &models.Bill{}, &models.BillMovement{}, &models.Payment{})
+	db.CreateTable(&clientnDomain.Client{}, &clientnDomain.Address{}, &locationDomain.City{}, &locationDomain.Department{},
+		&locationDomain.Country{}, &loanDomain.Loan{}, &loanDomain.Bill{}, &loanDomain.BillMovement{}, &loanDomain.Payment{})
 
-	db.Model(&models.Client{}).Related(&models.Address{})
+	db.Model(&clientnDomain.Client{}).Related(&clientnDomain.Address{})
 
-	atlanticoCities := []models.City{
+	atlanticoCities := []locationDomain.City{
 		{
 			Name: "Barranquilla",
 		},
@@ -28,7 +30,7 @@ func MigrateModel(db *gorm.DB) {
 			Name: "Pto Colombia",
 		},
 	}
-	antioquiaCities := []models.City{
+	antioquiaCities := []locationDomain.City{
 		{
 			Name: "Medellin",
 		},
@@ -39,7 +41,7 @@ func MigrateModel(db *gorm.DB) {
 			Name: "Sabaneta",
 		},
 	}
-	departments := []models.Department{
+	departments := []locationDomain.Department{
 		{
 			Name:   "Atlántico",
 			Cities: atlanticoCities,
@@ -49,7 +51,7 @@ func MigrateModel(db *gorm.DB) {
 			Cities: antioquiaCities,
 		},
 	}
-	country := models.Country{
+	country := locationDomain.Country{
 		Name:        "Colombia",
 		Departments: departments,
 	}

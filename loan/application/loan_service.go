@@ -5,7 +5,6 @@ import (
 	loanDomain "loans/loan/domain"
 	"loans/shared/config"
 	"loans/shared/errors"
-	"loans/shared/models"
 	"loans/shared/utils"
 	"loans/shared/utils/financial"
 	"time"
@@ -27,7 +26,7 @@ func NewLoanService(loanRepository loanDomain.LoanRepository, clientRepository c
 	}
 }
 
-func (s *LoanService) FindAllLoans() ([]models.Loan, error) {
+func (s *LoanService) FindAllLoans() ([]loanDomain.Loan, error) {
 	return s.loanRepository.FindAll()
 }
 
@@ -35,7 +34,7 @@ func (s *LoanService) SimulateLoan(request CreateLoanRequest) (*LoanAmortization
 	if error := utils.ValidateStruct(request); error != nil {
 		return nil, error
 	}
-	loan := models.Loan{}
+	loan := loanDomain.Loan{}
 	if error := copier.Copy(&loan, &request); error != nil {
 		return nil, error
 	}
@@ -62,8 +61,8 @@ func (s *LoanService) SimulateLoan(request CreateLoanRequest) (*LoanAmortization
 	return &response, nil
 }
 
-func (s *LoanService) CreateLoan(loan *models.Loan) error {
-	loan.State = models.LoanStateActive
+func (s *LoanService) CreateLoan(loan *loanDomain.Loan) error {
+	loan.State = loanDomain.LoanStateActive
 	loan.StartDate = loan.StartDate.In(config.DefaultLocation())
 	calculatePaymentOfLoan(loan)
 	calculateCloseDateAgreed(loan)
@@ -84,7 +83,7 @@ func (s *LoanService) closeLoan(loanID uint) error {
 	if error != nil {
 		return error
 	}
-	loan.State = models.LoanStateClosed
+	loan.State = loanDomain.LoanStateClosed
 	return s.loanRepository.UpdateLoan(&loan)
 }
 
@@ -98,7 +97,7 @@ func (s *LoanService) initialBill(loanID uint) error {
 		return &errors.GracefulError{ErrorCode: errors.BillAlreadyExist}
 	}
 	period := 1
-	newBill := models.Bill{}
+	newBill := loanDomain.Bill{}
 	newBill.LoanID = loan.ID
 	newBill.Period = uint(period)
 	newBill.BillStartDate = loan.StartDate
@@ -113,7 +112,7 @@ func (s *LoanService) recurringBill(loanID uint) error {
 	if error != nil {
 		return error
 	}
-	oldBill := models.Bill{}
+	oldBill := loanDomain.Bill{}
 	oldBill, error = s.loanRepository.FindBillOpenPeriodByLoanID(loanID)
 	if error != nil {
 		return error
@@ -122,7 +121,7 @@ func (s *LoanService) recurringBill(loanID uint) error {
 		return nil
 	}
 	period := int(oldBill.Period + 1)
-	newBill := models.Bill{
+	newBill := loanDomain.Bill{
 		LoanID:        loan.ID,
 		Period:        uint(period),
 		BillStartDate: oldBill.BillEndDate.AddDate(0, 0, 1),
@@ -139,12 +138,12 @@ func (s *LoanService) recurringBill(loanID uint) error {
 	return s.recurringBill(loanID)
 }
 
-func (s *LoanService) closePeriod(bill *models.Bill) error {
-	bill.PeriodStatus = models.PeriodStatusClosed
+func (s *LoanService) closePeriod(bill *loanDomain.Bill) error {
+	bill.PeriodStatus = loanDomain.PeriodStatusClosed
 	return s.loanRepository.UpdateBill(bill)
 }
 
-func (s *LoanService) PayLoan(payment *models.Payment) error {
+func (s *LoanService) PayLoan(payment *loanDomain.Payment) error {
 	billsWithDue, error := s.loanRepository.FindBillsWithDueOrOpenOrderedByPeriodAsc(payment.LoanID)
 	if error != nil {
 		return error
@@ -172,12 +171,12 @@ func (s *LoanService) PayLoan(payment *models.Payment) error {
 	return nil
 }
 
-func (s *LoanService) payBill(paymentToBill decimal.Decimal, bill models.Bill) error {
-	billMovement := new(models.BillMovement)
+func (s *LoanService) payBill(paymentToBill decimal.Decimal, bill loanDomain.Bill) error {
+	billMovement := new(loanDomain.BillMovement)
 	billMovement.FillInitialBillMovementFromBill(bill)
 	bill.ApplyPayment(paymentToBill)
 	if bill.FinalPrincipal.LessThanOrEqual(decimal.Zero) {
-		bill.PeriodStatus = models.PeriodStatusClosed
+		bill.PeriodStatus = loanDomain.PeriodStatusClosed
 		s.closeLoan(bill.LoanID)
 	}
 	billMovement.FillFinalBillMovementFromBill(bill)
@@ -187,19 +186,19 @@ func (s *LoanService) payBill(paymentToBill decimal.Decimal, bill models.Bill) e
 	return s.loanRepository.UpdateBill(&bill)
 }
 
-func calculateCloseDateAgreed(loan *models.Loan) {
+func calculateCloseDateAgreed(loan *loanDomain.Loan) {
 	loan.CloseDateAgreed = utils.AddMothToTimeForPayment(loan.StartDate, int(loan.PeriodNumbers))
 }
 
-func calculatePaymentOfLoan(loan *models.Loan) {
+func calculatePaymentOfLoan(loan *loanDomain.Loan) {
 	loan.PaymentAgreed = financial.CalculatePayment(loan.Principal, loan.InterestRatePeriod, int(loan.PeriodNumbers)).RoundBank(config.Round)
 }
 
-func balanceExpectedInSpecificPeriodOfLoan(loan models.Loan, period int) financial.Balance {
+func balanceExpectedInSpecificPeriodOfLoan(loan loanDomain.Loan, period int) financial.Balance {
 	return financial.BalanceExpectedInSpecificPeriod(loan.Principal, loan.InterestRatePeriod, int(loan.PeriodNumbers), period)
 }
 
-func nextBalanceFromBill(bill models.Bill) financial.Balance {
+func nextBalanceFromBill(bill loanDomain.Bill) financial.Balance {
 	balance := financial.Balance{}
 	balance.InitialPrincipal = bill.InitialPrincipal
 	balance.Payment = bill.Payment
@@ -210,10 +209,10 @@ func nextBalanceFromBill(bill models.Bill) financial.Balance {
 	return financial.NextBalanceFromBefore(balance)
 }
 
-func fillDefaultAmountValues(bill *models.Bill, balance financial.Balance) {
+func fillDefaultAmountValues(bill *loanDomain.Bill, balance financial.Balance) {
 	round := config.Round
-	bill.State = models.BillStateDue
-	bill.PeriodStatus = models.PeriodStatusOpen
+	bill.State = loanDomain.BillStateDue
+	bill.PeriodStatus = loanDomain.PeriodStatusOpen
 	bill.PaymentDate = bill.BillEndDate
 	bill.InitialPrincipal = balance.InitialPrincipal
 	bill.Payment = balance.Payment.RoundBank(round)
