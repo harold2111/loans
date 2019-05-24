@@ -2,19 +2,19 @@ package main
 
 import (
 	"fmt"
-	clientHtttpHandler "loans/client/handler/http"
-	clientRepository "loans/client/repository/postgress"
-	clientService "loans/client/service"
-	"loans/config"
-	"loans/errors"
-	loanHtttpHandler "loans/loan/handler/http"
-	loanRepository "loans/loan/repository/postgress"
-	loanService "loans/loan/service"
-	locationHtttpHandler "loans/location/handler/http"
-	locationRepository "loans/location/repository/postgress"
-	locationtService "loans/location/service"
-	"loans/postgres"
-	"loans/utils"
+	clientApplication "loans/client/application"
+	clientHttpHandler "loans/client/infrastructure/http"
+	clientPostgressRepository "loans/client/infrastructure/postgress"
+	loanApplication "loans/loan/application"
+	loantHttpHandler "loans/loan/infrastructure/http"
+	loanPostgressRepository "loans/loan/infrastructure/postgress"
+	locationApplication "loans/location/application"
+	locationHtttpHandler "loans/location/infrastructure/http"
+	locationPostgressRepository "loans/location/infrastructure/postgress"
+	"loans/shared/config"
+	"loans/shared/errors"
+	"loans/shared/postgres"
+	"loans/shared/utils"
 	"time"
 
 	"github.com/jinzhu/gorm"
@@ -40,16 +40,16 @@ func main() {
 	echoContext.Use(middleware.CORS())
 	echoContext.HTTPErrorHandler = errors.CustomHTTPErrorHandler
 
-	clientRepository, _ := clientRepository.NewClientRepository(db)
-	loanRepository, _ := loanRepository.NewLoanRepository(db)
-	locationRepositoy, _ := locationRepository.NewLocationRepositoryy(db)
+	clientRepository, _ := clientPostgressRepository.NewClientRepository(db)
+	loanRepository, _ := loanPostgressRepository.NewLoanRepository(db)
+	locationRepositoy, _ := locationPostgressRepository.NewLocationRepositoryy(db)
 
-	clientService := clientService.NewClientService(clientRepository, locationRepositoy)
-	loanService := loanService.NewLoanService(loanRepository, clientRepository)
-	locationService := locationtService.NewLocationService(locationRepositoy)
+	clientService := clientApplication.NewClientService(clientRepository, locationRepositoy)
+	loanService := loanApplication.NewLoanService(loanRepository, clientRepository)
+	locationService := locationApplication.NewLocationService(locationRepositoy)
 
-	clientHtttpHandler.NewClientHttpHandler(echoContext, clientService)
-	loanHtttpHandler.NewLoanHttpHandler(echoContext, loanService)
+	clientHttpHandler.NewClientHttpHandler(echoContext, clientService)
+	loantHttpHandler.NewLoanHttpHandler(echoContext, loanService)
 	locationHtttpHandler.NewLocationHttpHandler(echoContext, locationService)
 
 	echoContext.Logger.Fatal(echoContext.Start(":1323"))
