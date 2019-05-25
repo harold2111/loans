@@ -43,3 +43,28 @@ func ValidateStruct(s interface{}) error {
 	}
 	return nil
 }
+
+func ValidateVar(fieldName string, field interface{}, tag string) error {
+	if error := Validate.Var(field, tag); error != nil {
+		firstValidationError := error.(validator.ValidationErrors)[0]
+		fmt.Println(fieldName)
+		fmt.Println(firstValidationError.Tag())
+		fmt.Println(firstValidationError.ActualTag())
+		fmt.Println(firstValidationError.Kind())
+		fmt.Println(firstValidationError.Type())
+		fmt.Println(firstValidationError.Value())
+		fmt.Println(firstValidationError.Param())
+
+		tag := strings.ToLower(firstValidationError.Tag())
+		switch tag {
+		case "required":
+			messagesParameters := []interface{}{fieldName}
+			return &errors.ValidationError{ErrorCode: errors.RequiredField, MessagesParameters: messagesParameters}
+		default:
+			messagesParameters := []interface{}{fieldName}
+			return &errors.ValidationError{ErrorCode: errors.InvalidField, MessagesParameters: messagesParameters}
+		}
+
+	}
+	return nil
+}
