@@ -9,11 +9,10 @@ type Address struct {
 	ID           uint `gorm:"primary_key"`
 	CreatedAt    time.Time
 	UpdatedAt    time.Time
-	DeletedAt    *time.Time `sql:"index"`
-	StretAddress string     `gorm:"not null"`
-	ClientID     uint       `gorm:"not null"`
-	DepartmentID uint       `gorm:"not null"`
-	CityID       uint       `gorm:"not null"`
+	StretAddress string `gorm:"not null"`
+	ClientID     uint   `gorm:"not null"`
+	DepartmentID uint   `gorm:"not null"`
+	CityID       uint   `gorm:"not null"`
 }
 
 func NewAddessForCreateClient(
@@ -43,8 +42,6 @@ func NewAddessForUpdateClient(
 		CityID:       cityID,
 	}
 	if error := address.validateForCreationOfNewClient(); error != nil {
-		return Address{}, error
-	} else if error := utils.ValidateVar("id", address.ID, "required"); error != nil {
 		return Address{}, error
 	}
 	return address, nil

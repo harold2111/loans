@@ -21,4 +21,11 @@ func (g *GetClientResponse) fillFromClient(client clientDomain.Client) {
 	g.Telephone1 = client.Telephone1
 	g.Telephone2 = client.Telephone2
 	g.Email = client.Email
+	if len(client.Addresses) > 0 {
+		for _, address := range client.Addresses {
+			var getAddressClientResponse GetAddressClientResponse
+			getAddressClientResponse.fillFromAddress(address)
+			g.Addresses = append(g.Addresses, getAddressClientResponse)
+		}
+	}
 }

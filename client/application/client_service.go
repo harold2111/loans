@@ -4,7 +4,6 @@ import (
 	clientDomain "loans/client/domain"
 	locationDomain "loans/location/domain"
 	"loans/shared/errors"
-	"loans/shared/utils"
 )
 
 type ClientService struct {
@@ -116,55 +115,6 @@ func (s *ClientService) DeleteClient(clientID uint) error {
 		return err
 	}
 	return s.clientRepository.Delete(&client)
-}
-
-func (s *ClientService) FindAddressesByClientID(clientID uint) ([]clientDomain.Address, error) {
-	addresses, err := s.clientRepository.FindAddressesByClientID(clientID)
-	if err != nil {
-		return nil, err
-	}
-	return addresses, nil
-}
-
-func (s *ClientService) CreateAddressClient(address *clientDomain.Address) error {
-	if error := utils.ValidateStruct(address); error != nil {
-		return error
-	}
-	if exist, err := s.clientExist(address.ClientID); !exist {
-		return err
-	}
-	if _, err := s.clientRepository.FindAddressByIDAndClientID(address.ID, address.ClientID); err == nil {
-		return &errors.RecordNotFound{ErrorCode: errors.AddressDuplicate}
-	}
-	if err := s.validateCityID(address.CityID); err != nil {
-		return err
-	}
-	return s.clientRepository.CreateAddressClient(address)
-}
-
-func (s *ClientService) UpdateAdressClient(address *clientDomain.Address) error {
-	if error := utils.ValidateStruct(address); error != nil {
-		return error
-	}
-	if _, err := s.clientRepository.FindAddressByIDAndClientID(address.ID, address.ClientID); err != nil {
-		return err
-	}
-	if err := s.validateCityID(address.CityID); err != nil {
-		return err
-	}
-	return s.clientRepository.UpdateAddressClient(address)
-}
-
-func (s *ClientService) DeleteAddressClient(clientID uint, addressID uint) error {
-	address, err := s.clientRepository.FindAddressByIDAndClientID(addressID, clientID)
-	if err != nil {
-		return err
-	}
-	return s.clientRepository.DeleteAddressClient(address)
-}
-
-func (s *ClientService) FindAddressByClientIDAndAddressID(addressID uint, clientID uint) (*clientDomain.Address, error) {
-	return s.clientRepository.FindAddressByIDAndClientID(addressID, clientID)
 }
 
 func (s *ClientService) validateCityID(cityID uint) error {
