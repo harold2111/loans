@@ -49,34 +49,34 @@ func (r *loanRepository) UpdateLoan(loan *loanDomain.Loan) error {
 	return r.db.Save(loan).Error
 }
 
-func (r *loanRepository) StoreBill(bill *loanDomain.Bill) error {
+func (r *loanRepository) StoreBill(bill *loanDomain.LoanPeriod) error {
 	return r.db.Create(bill).Error
 }
 
-func (r *loanRepository) UpdateBill(bill *loanDomain.Bill) error {
+func (r *loanRepository) UpdateBill(bill *loanDomain.LoanPeriod) error {
 	return r.db.Save(bill).Error
 }
 
-func (r *loanRepository) FindBillsByLoanID(loanID uint) ([]loanDomain.Bill, error) {
-	var bills []loanDomain.Bill
+func (r *loanRepository) FindBillsByLoanID(loanID uint) ([]loanDomain.LoanPeriod, error) {
+	var bills []loanDomain.LoanPeriod
 	r.db.Find(&bills, "loan_id = ?", loanID)
 	return bills, nil
 }
 
-func (r *loanRepository) FindBillsWithDueOrOpenOrderedByPeriodAsc(loanID uint) ([]loanDomain.Bill, error) {
-	var bills []loanDomain.Bill
-	r.db.Order("period").Find(&bills, "loan_id = ? AND state = ? OR period_status = ?", loanID, loanDomain.BillStateDue, loanDomain.PeriodStatusOpen)
+func (r *loanRepository) FindBillsWithDueOrOpenOrderedByPeriodAsc(loanID uint) ([]loanDomain.LoanPeriod, error) {
+	var bills []loanDomain.LoanPeriod
+	r.db.Order("period").Find(&bills, "loan_id = ? AND state = ? OR period_status = ?", loanID, loanDomain.LoanPeriodStateDue, loanDomain.PeriodStatusOpen)
 	return bills, nil
 }
 
-func (r *loanRepository) FindBillOpenPeriodByLoanID(loanID uint) (loanDomain.Bill, error) {
-	bill := loanDomain.Bill{}
+func (r *loanRepository) FindBillOpenPeriodByLoanID(loanID uint) (loanDomain.LoanPeriod, error) {
+	bill := loanDomain.LoanPeriod{}
 	error := r.db.Raw("SELECT * FROM bills WHERE loan_id = ? AND period_status = ? AND period = (SELECT max(period) FROM bills where loan_id = ?)",
 		loanID, loanDomain.PeriodStatusOpen, loanID).Scan(&bill).Error
 	return bill, error
 }
 
-func (r *loanRepository) StoreBillMovement(billMovement *loanDomain.BillMovement) error {
+func (r *loanRepository) StoreBillMovement(billMovement *loanDomain.LoanPeriodMovement) error {
 	return r.db.Create(billMovement).Error
 }
 

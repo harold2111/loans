@@ -10,13 +10,13 @@ import (
 )
 
 const (
-	BillStateDue       = "DUE"
-	BillStatePaid      = "PAID"
-	PeriodStatusClosed = "ClOSED"
-	PeriodStatusOpen   = "OPEN"
+	LoanPeriodStateDue    = "DUE"
+	LoanPeriodStatePaid   = "PAID"
+	LoanPeriodStateClosed = "ClOSED"
+	PeriodStatusOpen      = "OPEN"
 )
 
-type Bill struct {
+type LoanPeriod struct {
 	ID                  uint            `gorm:"primary_key" json:"id"`
 	CreatedAt           time.Time       `json:"-"`
 	UpdatedAt           time.Time       `json:"-"`
@@ -43,39 +43,39 @@ type Bill struct {
 	LastLiquidationDate time.Time       `json:"lastLiquidationDate"`
 }
 
-func (bill *Bill) LiquidateBill(liquidationDate time.Time) {
-	daysLate := calculateDaysLate(bill.LastLiquidationDate, liquidationDate)
-	feeLatePeriod := financial.FeeLateWithPeriodInterest(bill.InterestRate, bill.PaymentDue, daysLate).RoundBank(config.Round)
-	totalFeeLateDue := bill.FeeLateDue.Add(feeLatePeriod).RoundBank(config.Round)
-	totalDue := bill.PaymentDue.Add(totalFeeLateDue).RoundBank(config.Round)
-	totalDaysLate := bill.DaysLate + daysLate
+func (period *LoanPeriod) LiquidateBill(liquidationDate time.Time) {
+	daysLate := calculateDaysLate(period.LastLiquidationDate, liquidationDate)
+	feeLatePeriod := financial.FeeLateWithPeriodInterest(period.InterestRate, period.PaymentDue, daysLate).RoundBank(config.Round)
+	totalFeeLateDue := period.FeeLateDue.Add(feeLatePeriod).RoundBank(config.Round)
+	totalDue := period.PaymentDue.Add(totalFeeLateDue).RoundBank(config.Round)
+	totalDaysLate := period.DaysLate + daysLate
 
-	bill.DaysLate = totalDaysLate
-	bill.FeeLateDue = totalFeeLateDue
-	bill.TotalDue = totalDue
-	bill.LastLiquidationDate = liquidationDate
+	period.DaysLate = totalDaysLate
+	period.FeeLateDue = totalFeeLateDue
+	period.TotalDue = totalDue
+	period.LastLiquidationDate = liquidationDate
 }
 
-func (bill *Bill) ApplyPayment(paymentToBill decimal.Decimal) {
+func (period *LoanPeriod) ApplyPayment(paymentToBill decimal.Decimal) {
 	//the payment NO covers all the fee late
-	if paymentToBill.LessThanOrEqual(bill.FeeLateDue) {
-		bill.FeeLateDue = bill.FeeLateDue.Sub(paymentToBill)
+	if paymentToBill.LessThanOrEqual(period.FeeLateDue) {
+		period.FeeLateDue = period.FeeLateDue.Sub(paymentToBill)
 	} else { //the payment covers fee late
-		remainingPaymentToBill := paymentToBill.Sub(bill.FeeLateDue)
-		bill.FeeLateDue = decimal.Zero
-		paymentDue := bill.PaymentDue.Sub(remainingPaymentToBill).RoundBank(config.Round)
+		remainingPaymentToBill := paymentToBill.Sub(period.FeeLateDue)
+		period.FeeLateDue = decimal.Zero
+		paymentDue := period.PaymentDue.Sub(remainingPaymentToBill).RoundBank(config.Round)
 		if paymentDue.LessThanOrEqual(decimal.Zero) {
-			bill.PaidToPrincipal = bill.PaidToPrincipal.Add(paymentDue.Abs()).RoundBank(config.Round)
-			bill.FinalPrincipal = bill.FinalPrincipal.Sub(bill.PaidToPrincipal).RoundBank(config.Round)
-			bill.PaymentDue = decimal.Zero
+			period.PaidToPrincipal = period.PaidToPrincipal.Add(paymentDue.Abs()).RoundBank(config.Round)
+			period.FinalPrincipal = period.FinalPrincipal.Sub(period.PaidToPrincipal).RoundBank(config.Round)
+			period.PaymentDue = decimal.Zero
 		} else {
-			bill.PaymentDue = paymentDue
+			period.PaymentDue = paymentDue
 		}
 	}
-	bill.TotalDue = bill.PaymentDue.Add(bill.FeeLateDue).RoundBank(config.Round)
-	bill.Paid = bill.Paid.Add(paymentToBill)
-	if bill.TotalDue.LessThanOrEqual(decimal.Zero) {
-		bill.State = BillStatePaid
+	period.TotalDue = period.PaymentDue.Add(period.FeeLateDue).RoundBank(config.Round)
+	period.Paid = period.Paid.Add(paymentToBill)
+	if period.TotalDue.LessThanOrEqual(decimal.Zero) {
+		period.State = LoanPeriodStatePaid
 	}
 }
 

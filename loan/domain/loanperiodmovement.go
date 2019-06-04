@@ -7,7 +7,7 @@ import (
 	"github.com/shopspring/decimal"
 )
 
-type BillMovement struct {
+type LoanPeriodMovement struct {
 	ID                     uint            `gorm:"primary_key" json:"id"`
 	CreatedAt              time.Time       `json:"-"`
 	UpdatedAt              time.Time       `json:"-"`
@@ -29,7 +29,7 @@ type BillMovement struct {
 	FinalDue               decimal.Decimal `gorm:"type:numeric" json:"starFinalDuetDate"`
 }
 
-func (billMovement *BillMovement) FillInitialBillMovementFromBill(bill Bill) {
+func (billMovement *LoanPeriodMovement) FillInitialBillMovementFromBill(bill LoanPeriod) {
 	billMovement.PaymentID = bill.LoanID
 	billMovement.BillID = bill.ID
 	billMovement.MovementDate = bill.LastLiquidationDate
@@ -40,7 +40,7 @@ func (billMovement *BillMovement) FillInitialBillMovementFromBill(bill Bill) {
 	billMovement.DaysLate = bill.DaysLate
 }
 
-func (billMovement *BillMovement) FillFinalBillMovementFromBill(bill Bill) {
+func (billMovement *LoanPeriodMovement) FillFinalBillMovementFromBill(bill LoanPeriod) {
 	billMovement.PaidToPaymentDue = billMovement.InitialPaymentDue.Sub(bill.PaymentDue).RoundBank(config.Round)
 	billMovement.PaidToFeeLate = billMovement.InitialFeeLateDue.Sub(bill.FeeLateDue).RoundBank(config.Round)
 	billMovement.FinalPaymentDue = bill.PaymentDue
