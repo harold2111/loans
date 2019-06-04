@@ -9,7 +9,6 @@ import (
 	"loans/shared/utils/financial"
 	"time"
 
-	"github.com/jinzhu/copier"
 	"github.com/shopspring/decimal"
 )
 
@@ -31,11 +30,14 @@ func (s *LoanService) FindAllLoans() ([]loanDomain.Loan, error) {
 }
 
 func (s *LoanService) SimulateLoan(request CreateLoanRequest) (*LoanAmortizationsResponse, error) {
-	if error := utils.ValidateStruct(request); error != nil {
-		return nil, error
-	}
-	loan := loanDomain.Loan{}
-	if error := copier.Copy(&loan, &request); error != nil {
+	loan, error := loanDomain.NewLoanForCreate(
+		request.Principal,
+		request.InterestRatePeriod,
+		request.PeriodNumbers,
+		request.StartDate,
+		request.ClientID,
+	)
+	if error != nil {
 		return nil, error
 	}
 	amortizations := financial.Amortizations(loan.Principal, loan.InterestRatePeriod, int(loan.PeriodNumbers))
@@ -61,25 +63,31 @@ func (s *LoanService) SimulateLoan(request CreateLoanRequest) (*LoanAmortization
 	return &response, nil
 }
 
-func (s *LoanService) CreateLoan(loan *loanDomain.Loan) error {
-	loan.State = loanDomain.LoanStateActive
-	loan.StartDate = loan.StartDate.In(config.DefaultLocation())
-	calculatePaymentOfLoan(loan)
-	calculateCloseDateAgreed(loan)
-	if error := s.loanRepository.StoreLoan(loan); error != nil {
+func (s *LoanService) CreateLoan(request CreateLoanRequest) error {
+	loan, error := loanDomain.NewLoanForCreate(
+		request.Principal,
+		request.InterestRatePeriod,
+		request.PeriodNumbers,
+		request.StartDate,
+		request.ClientID,
+	)
+	if error != nil {
 		return error
 	}
-	if error := s.initialBill(loan.ID); error != nil {
+	if error := s.loanRepository.StoreLoan(&loan); error != nil {
+		return error
+	}
+	if error := s.initialLoanPeriod(loan.ID); error != nil {
 		return nil
 	}
-	if error := s.recurringBill(loan.ID); error != nil {
+	if error := s.recurringLoanPeriod(loan.ID); error != nil {
 		return nil
 	}
 	return nil
 }
 
 func (s *LoanService) PayLoan(payment *loanDomain.Payment) error {
-	billsWithDue, error := s.loanRepository.FindBillsWithDueOrOpenOrderedByPeriodAsc(payment.LoanID)
+	loanPeriodsWithDue, error := s.loanRepository.FindBillsWithDueOrOpenOrderedByPeriodAsc(payment.LoanID)
 	if error != nil {
 		return error
 	}
@@ -87,21 +95,21 @@ func (s *LoanService) PayLoan(payment *loanDomain.Payment) error {
 		return error
 	}
 	remainingPayment := payment.PaymentAmount.RoundBank(config.Round)
-	for index, bill := range billsWithDue {
-		paymentToBill := decimal.Zero
+	for index, period := range loanPeriodsWithDue {
+		paymentToPeriod := decimal.Zero
 		if remainingPayment.LessThanOrEqual(decimal.Zero) {
 			break
 		}
-		if remainingPayment.LessThanOrEqual(bill.TotalDue) || len(billsWithDue) == (index+1) {
-			paymentToBill = remainingPayment
+		if remainingPayment.LessThanOrEqual(period.TotalDue) || len(loanPeriodsWithDue) == (index+1) {
+			paymentToPeriod = remainingPayment
 		} else {
-			paymentToBill = bill.TotalDue
+			paymentToPeriod = period.TotalDue
 		}
-		bill.LiquidateBill(payment.PaymentDate)
-		if error := s.payBill(paymentToBill, bill); error != nil {
+		period.LiquidateBill(payment.PaymentDate)
+		if error := s.payLoanPeriod(paymentToPeriod, period); error != nil {
 			return error
 		}
-		remainingPayment = remainingPayment.Sub(paymentToBill).RoundBank(config.Round)
+		remainingPayment = remainingPayment.Sub(paymentToPeriod).RoundBank(config.Round)
 	}
 	return nil
 }
@@ -115,7 +123,7 @@ func (s *LoanService) closeLoan(loanID uint) error {
 	return s.loanRepository.UpdateLoan(&loan)
 }
 
-func (s *LoanService) initialBill(loanID uint) error {
+func (s *LoanService) initialLoanPeriod(loanID uint) error {
 	loan, error := s.loanRepository.FindLoanByID(loanID)
 	if error != nil {
 		return error
@@ -135,77 +143,69 @@ func (s *LoanService) initialBill(loanID uint) error {
 	return s.loanRepository.StoreBill(&newBill)
 }
 
-func (s *LoanService) recurringBill(loanID uint) error {
+func (s *LoanService) recurringLoanPeriod(loanID uint) error {
 	loan, error := s.loanRepository.FindLoanByID(loanID)
 	if error != nil {
 		return error
 	}
-	oldBill := loanDomain.LoanPeriod{}
-	oldBill, error = s.loanRepository.FindBillOpenPeriodByLoanID(loanID)
+	OldLoanPeriod := loanDomain.LoanPeriod{}
+	OldLoanPeriod, error = s.loanRepository.FindBillOpenPeriodByLoanID(loanID)
 	if error != nil {
 		return error
 	}
-	if time.Now().Before(oldBill.BillEndDate) {
+	if time.Now().Before(OldLoanPeriod.BillEndDate) {
 		return nil
 	}
-	period := int(oldBill.Period + 1)
+	period := int(OldLoanPeriod.Period + 1)
 	newBill := loanDomain.LoanPeriod{
 		LoanID:        loan.ID,
 		Period:        uint(period),
-		BillStartDate: oldBill.BillEndDate.AddDate(0, 0, 1),
-		BillEndDate:   utils.AddMothToTimeForPayment(oldBill.BillEndDate, 1),
+		BillStartDate: OldLoanPeriod.BillEndDate.AddDate(0, 0, 1),
+		BillEndDate:   utils.AddMothToTimeForPayment(OldLoanPeriod.BillEndDate, 1),
 	}
-	nextBalance := nextBalanceFromBill(oldBill)
+	nextBalance := nextBalanceFromLoanPeriod(OldLoanPeriod)
 	fillDefaultAmountValues(&newBill, nextBalance)
 	if error := s.loanRepository.StoreBill(&newBill); error != nil {
 		return error
 	}
-	if error := s.closePeriod(&oldBill); error != nil {
+	if error := s.closePeriod(&OldLoanPeriod); error != nil {
 		return error
 	}
-	return s.recurringBill(loanID)
+	return s.recurringLoanPeriod(loanID)
 }
 
-func (s *LoanService) closePeriod(bill *loanDomain.LoanPeriod) error {
-	bill.PeriodStatus = loanDomain.PeriodStatusClosed
-	return s.loanRepository.UpdateBill(bill)
+func (s *LoanService) closePeriod(period *loanDomain.LoanPeriod) error {
+	period.PeriodStatus = loanDomain.LoanPeriodStateClosed
+	return s.loanRepository.UpdateBill(period)
 }
 
-func (s *LoanService) payBill(paymentToBill decimal.Decimal, bill loanDomain.LoanPeriod) error {
-	billMovement := new(loanDomain.LoanPeriodMovement)
-	billMovement.FillInitialBillMovementFromBill(bill)
-	bill.ApplyPayment(paymentToBill)
-	if bill.FinalPrincipal.LessThanOrEqual(decimal.Zero) {
-		bill.PeriodStatus = loanDomain.PeriodStatusClosed
-		s.closeLoan(bill.LoanID)
+func (s *LoanService) payLoanPeriod(periodPayment decimal.Decimal, loanPeriod loanDomain.LoanPeriod) error {
+	loanPeriodMovement := new(loanDomain.LoanPeriodMovement)
+	loanPeriodMovement.FillInitialBillMovementFromBill(loanPeriod)
+	loanPeriod.ApplyPayment(periodPayment)
+	if loanPeriod.FinalPrincipal.LessThanOrEqual(decimal.Zero) {
+		loanPeriod.PeriodStatus = loanDomain.LoanPeriodStateClosed
+		s.closeLoan(loanPeriod.LoanID)
 	}
-	billMovement.FillFinalBillMovementFromBill(bill)
-	if error := s.loanRepository.StoreBillMovement(billMovement); error != nil {
+	loanPeriodMovement.FillFinalBillMovementFromBill(loanPeriod)
+	if error := s.loanRepository.StoreBillMovement(loanPeriodMovement); error != nil {
 		return error
 	}
-	return s.loanRepository.UpdateBill(&bill)
-}
-
-func calculateCloseDateAgreed(loan *loanDomain.Loan) {
-	loan.CloseDateAgreed = utils.AddMothToTimeForPayment(loan.StartDate, int(loan.PeriodNumbers))
-}
-
-func calculatePaymentOfLoan(loan *loanDomain.Loan) {
-	loan.PaymentAgreed = financial.CalculatePayment(loan.Principal, loan.InterestRatePeriod, int(loan.PeriodNumbers)).RoundBank(config.Round)
+	return s.loanRepository.UpdateBill(&loanPeriod)
 }
 
 func balanceExpectedInSpecificPeriodOfLoan(loan loanDomain.Loan, period int) financial.Balance {
 	return financial.BalanceExpectedInSpecificPeriod(loan.Principal, loan.InterestRatePeriod, int(loan.PeriodNumbers), period)
 }
 
-func nextBalanceFromBill(bill loanDomain.LoanPeriod) financial.Balance {
+func nextBalanceFromLoanPeriod(loanPeriod loanDomain.LoanPeriod) financial.Balance {
 	balance := financial.Balance{}
-	balance.InitialPrincipal = bill.InitialPrincipal
-	balance.Payment = bill.Payment
-	balance.InterestRatePeriod = bill.InterestRate
-	balance.ToInterest = bill.InterestOfPayment
-	balance.ToPrincipal = bill.PrincipalOfPayment
-	balance.FinalPrincipal = bill.FinalPrincipal
+	balance.InitialPrincipal = loanPeriod.InitialPrincipal
+	balance.Payment = loanPeriod.Payment
+	balance.InterestRatePeriod = loanPeriod.InterestRate
+	balance.ToInterest = loanPeriod.InterestOfPayment
+	balance.ToPrincipal = loanPeriod.PrincipalOfPayment
+	balance.FinalPrincipal = loanPeriod.FinalPrincipal
 	return financial.NextBalanceFromBefore(balance)
 }
 
