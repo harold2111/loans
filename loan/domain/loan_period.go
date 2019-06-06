@@ -13,39 +13,39 @@ const (
 	LoanPeriodStateDue    = "DUE"
 	LoanPeriodStatePaid   = "PAID"
 	LoanPeriodStateClosed = "ClOSED"
-	PeriodStatusOpen      = "OPEN"
+	LoanPeriodStateOpen   = "OPEN"
 )
 
 type LoanPeriod struct {
-	ID                  uint            `gorm:"primary_key" json:"id"`
-	CreatedAt           time.Time       `json:"-"`
-	UpdatedAt           time.Time       `json:"-"`
-	DeletedAt           *time.Time      `sql:"index" json:"-"`
-	LoanID              uint            `json:"loanID"`
-	State               string          `json:"state"`
-	PeriodStatus        string          `json:"periodStatus"`
-	Period              uint            `json:"period"`
-	BillStartDate       time.Time       `json:"billStartDate"`
-	BillEndDate         time.Time       `json:"billEndDate"`
-	PaymentDate         time.Time       `json:"paymentDate"`
-	InitialPrincipal    decimal.Decimal `gorm:"type:numeric" json:"initialPrincipal"`
-	Payment             decimal.Decimal `gorm:"type:numeric" json:"payment"`
-	InterestRate        decimal.Decimal `gorm:"type:numeric" json:"interestRate"`
-	InterestOfPayment   decimal.Decimal `gorm:"type:numeric" json:"interestOfPayment"`
-	PrincipalOfPayment  decimal.Decimal `gorm:"type:numeric" json:"principalOfPayment"`
-	Paid                decimal.Decimal `gorm:"type:numeric" json:"paid"`
-	DaysLate            int             `json:"daysLate"`
-	FeeLateDue          decimal.Decimal `gorm:"type:numeric" json:"feeLateDue"`
-	PaymentDue          decimal.Decimal `gorm:"type:numeric" json:"paymentDue"`
-	TotalDue            decimal.Decimal `gorm:"type:numeric" json:"totalDue"`
-	PaidToPrincipal     decimal.Decimal `gorm:"type:numeric" json:"paidToPrincipal"`
-	FinalPrincipal      decimal.Decimal `gorm:"type:numeric" json:"finalPrincipal"`
-	LastLiquidationDate time.Time       `json:"lastLiquidationDate"`
+	ID                 uint `gorm:"primary_key" json:"id"`
+	CreatedAt          time.Time
+	UpdatedAt          time.Time
+	DeletedAt          *time.Time `sql:"index" json:"-"`
+	PeriodNumber       uint
+	State              string
+	StartDate          time.Time
+	EndDate            time.Time
+	PaymentDate        time.Time
+	InitialPrincipal   decimal.Decimal `gorm:"type:numeric"`
+	Payment            decimal.Decimal `gorm:"type:numeric"`
+	InterestRate       decimal.Decimal `gorm:"type:numeric"`
+	PrincipalOfPayment decimal.Decimal `gorm:"type:numeric"`
+	InterestOfPayment  decimal.Decimal `gorm:"type:numeric"`
+	FinalPrincipal     decimal.Decimal `gorm:"type:numeric"`
+	//Modifible fields
+	TotalPaid           decimal.Decimal `gorm:"type:numeric"`
+	TotalDaysLate       int
+	TotalFeeLateDue     decimal.Decimal `gorm:"type:numeric"`
+	TotalPaymentDue     decimal.Decimal `gorm:"type:numeric"`
+	TotalDue            decimal.Decimal `gorm:"type:numeric"`
+	PaidToPrincipal     decimal.Decimal `gorm:"type:numeric"`
+	LastLiquidationDate time.Time
+	LoanID              uint
 }
 
-func (period *LoanPeriod) LiquidateBill(liquidationDate time.Time) {
+func (period *LoanPeriod) Liquidate(liquidationDate time.Time) {
 	daysLate := calculateDaysLate(period.LastLiquidationDate, liquidationDate)
-	feeLatePeriod := financial.FeeLateWithPeriodInterest(period.InterestRate, period.PaymentDue, daysLate).RoundBank(config.Round)
+	feeLatePeriod := financial.FeeLateWithPeriodInterest(period.InterestRate, period.TotalPaymentDue, daysLate).RoundBank(config.Round)
 	totalFeeLateDue := period.FeeLateDue.Add(feeLatePeriod).RoundBank(config.Round)
 	totalDue := period.PaymentDue.Add(totalFeeLateDue).RoundBank(config.Round)
 	totalDaysLate := period.DaysLate + daysLate

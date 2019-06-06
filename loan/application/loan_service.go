@@ -74,16 +74,7 @@ func (s *LoanService) CreateLoan(request CreateLoanRequest) error {
 	if error != nil {
 		return error
 	}
-	if error := s.loanRepository.StoreLoan(&loan); error != nil {
-		return error
-	}
-	if error := s.initialLoanPeriod(loan.ID); error != nil {
-		return nil
-	}
-	if error := s.recurringLoanPeriod(loan.ID); error != nil {
-		return nil
-	}
-	return nil
+	return s.loanRepository.StoreLoan(&loan)
 }
 
 func (s *LoanService) PayLoan(payment *loanDomain.Payment) error {
