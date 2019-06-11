@@ -96,7 +96,7 @@ func (s *LoanService) PayLoan(payment *loanDomain.Payment) error {
 		} else {
 			paymentToPeriod = period.TotalDue
 		}
-		period.LiquidateBill(payment.PaymentDate)
+		period.CalculateDebtForArrears(payment.PaymentDate)
 		if error := s.payLoanPeriod(paymentToPeriod, period); error != nil {
 			return error
 		}

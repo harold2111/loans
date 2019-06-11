@@ -17,10 +17,11 @@ const (
 )
 
 type LoanPeriod struct {
-	ID                 uint `gorm:"primary_key" json:"id"`
+	ID                 uint `gorm:"primary_key"`
+	LoanID             uint
 	CreatedAt          time.Time
 	UpdatedAt          time.Time
-	DeletedAt          *time.Time `sql:"index" json:"-"`
+	DeletedAt          *time.Time `sql:"index"`
 	PeriodNumber       uint
 	State              string
 	StartDate          time.Time
@@ -33,27 +34,25 @@ type LoanPeriod struct {
 	InterestOfPayment  decimal.Decimal `gorm:"type:numeric"`
 	FinalPrincipal     decimal.Decimal `gorm:"type:numeric"`
 	//Modifible fields
-	TotalPaid           decimal.Decimal `gorm:"type:numeric"`
-	TotalDaysLate       int
-	TotalFeeLateDue     decimal.Decimal `gorm:"type:numeric"`
-	TotalPaymentDue     decimal.Decimal `gorm:"type:numeric"`
-	TotalDue            decimal.Decimal `gorm:"type:numeric"`
-	PaidToPrincipal     decimal.Decimal `gorm:"type:numeric"`
-	LastLiquidationDate time.Time
-	LoanID              uint
+	LastLiquidationDate       time.Time
+	TotalDebtOfPayment        decimal.Decimal `gorm:"type:numeric"`
+	TotalDaysInArrears        int
+	TotalDebtForArrears       decimal.Decimal `gorm:"type:numeric"`
+	TotalPaid                 decimal.Decimal `gorm:"type:numeric"`
+	TotalPaidToRegularDebt    decimal.Decimal `gorm:"type:numeric"`
+	TotalPaidToDebtForArrears decimal.Decimal `gorm:"type:numeric"`
+	TotalPaidToPrincipal      decimal.Decimal `gorm:"type:numeric"`
 }
 
-func (period *LoanPeriod) Liquidate(liquidationDate time.Time) {
-	daysLate := calculateDaysLate(period.LastLiquidationDate, liquidationDate)
-	feeLatePeriod := financial.FeeLateWithPeriodInterest(period.InterestRate, period.TotalPaymentDue, daysLate).RoundBank(config.Round)
-	totalFeeLateDue := period.FeeLateDue.Add(feeLatePeriod).RoundBank(config.Round)
-	totalDue := period.PaymentDue.Add(totalFeeLateDue).RoundBank(config.Round)
-	totalDaysLate := period.DaysLate + daysLate
+func (period *LoanPeriod) CalculateDebtForArrears(liquidationDate time.Time) {
+	daysInArrearsSinceLastLiquidation := calculateDaysLate(period.LastLiquidationDate, liquidationDate)
+	debtForArrearsSinceLastLiquidation := financial.FeeLateWithPeriodInterest(period.InterestRate, period.TotalDebtOfPayment, daysInArrearsSinceLastLiquidation).RoundBank(config.Round)
+	totalDaysInArrears := period.TotalDaysInArrears + daysInArrearsSinceLastLiquidation
+	totalDebtForArrears := period.TotalDebtForArrears.Add(debtForArrearsSinceLastLiquidation).RoundBank(config.Round)
 
-	period.DaysLate = totalDaysLate
-	period.FeeLateDue = totalFeeLateDue
-	period.TotalDue = totalDue
 	period.LastLiquidationDate = liquidationDate
+	period.TotalDaysInArrears = totalDaysInArrears
+	period.TotalDebtForArrears = totalDebtForArrears
 }
 
 func (period *LoanPeriod) ApplyPayment(paymentToBill decimal.Decimal) {

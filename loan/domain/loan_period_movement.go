@@ -8,19 +8,19 @@ import (
 )
 
 type LoanPeriodMovement struct {
-	ID                     uint            `gorm:"primary_key" json:"id"`
-	CreatedAt              time.Time       `json:"-"`
-	UpdatedAt              time.Time       `json:"-"`
-	DeletedAt              *time.Time      `sql:"index" json:"-"`
-	BillID                 uint            `json:"billID"`
-	PaymentID              uint            `json:"ptartDate"`
-	MovementDate           time.Time       `json:"movementDate"`
+	ID                     uint       `gorm:"primary_key" json:"id"`
+	CreatedAt              time.Time  `json:"-"`
+	UpdatedAt              time.Time  `json:"-"`
+	DeletedAt              *time.Time `sql:"index" json:"-"`
+	LoandPeriodID          uint
+	PaymentID              uint
+	MovementDate           time.Time
 	InitialPaymentDue      decimal.Decimal `gorm:"type:numeric" json:"initialPaymentDue"`
 	InitialFeeLateDue      decimal.Decimal `gorm:"type:numeric" json:"initialFeeLateDue"`
 	InitialPaidToPrincipal decimal.Decimal `gorm:"type:numeric" json:"initialPaidToPrincipal"`
 	InitialDue             decimal.Decimal `gorm:"type:numeric" json:"initialDue"`
 	Paid                   decimal.Decimal `gorm:"type:numeric" json:"paid"`
-	DaysLate               int             `json:"startDate"`
+	DaysLate               int
 	PaidToPaymentDue       decimal.Decimal `gorm:"type:numeric" json:"PaidToPaymentDue"`
 	PaidToFeeLate          decimal.Decimal `gorm:"type:numeric" json:"PaidToFeeLate"`
 	PaidToPrincipal        decimal.Decimal `gorm:"type:numeric" json:"PaidToPrincipal"`
