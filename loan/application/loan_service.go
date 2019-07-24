@@ -81,9 +81,6 @@ func (s *LoanService) PayLoan(payment *loanDomain.Payment) error {
 	if error != nil {
 		return error
 	}
-	if error := loanRepository.StorePayment(payment); error != nil {
-		return error
-	}
 	//Liquidate Periods
 	for _, period := range loanPeriodsWithDebt {
 		period.LiquidateByDate(payment.PaymentDate)
@@ -91,38 +88,39 @@ func (s *LoanService) PayLoan(payment *loanDomain.Payment) error {
 	var paidPeriods []loanDomain.LoanPeriod
 	var paidPeriodMovements []loanDomain.LoanPeriodMovement
 	remainingPayment := payment.PaymentAmount.RoundBank(config.Round)
+	var paymentToInitialPrincipal decimal.Decimal
+	continueApplyingPayment := true
 	for index, period := range loanPeriodsWithDebt {
 		paymentToPeriod := decimal.Zero
-		if remainingPayment.LessThanOrEqual(decimal.Zero) {
-			break
+		if continueApplyingPayment {
+			if remainingPayment.LessThanOrEqual(period.TotalDebt) || len(loanPeriodsWithDebt) == (index+1) {
+				paymentToPeriod = remainingPayment
+			} else {
+				paymentToPeriod = period.TotalDebt
+			}
+			loanPeriodMovement := period.ApplyPayment(payment.ID, paymentToPeriod)
+			paidPeriods = append(paidPeriods, period)                             //I will use it for a store in batch
+			paidPeriodMovements = append(paidPeriodMovements, loanPeriodMovement) //I will use it for a store in batch
+			if period.FinalPrincipal.LessThanOrEqual(decimal.Zero) {
+				s.closeLoan(period.LoanID)
+			}
+			remainingPayment = remainingPayment.Sub(paymentToPeriod).RoundBank(config.Round)
+			continueApplyingPayment = remainingPayment.LessThanOrEqual(decimal.Zero)
 		}
-		if remainingPayment.LessThanOrEqual(period.TotalDebt) || len(loanPeriodsWithDebt) == (index+1) {
-			paymentToPeriod = remainingPayment
-		} else {
-			paymentToPeriod = period.TotalDebt
+		if !continueApplyingPayment {
+			paymentToNextInitialPrincipal = period.TotalPaidExtraToPrincipal
 		}
-
-		loanPeriodMovement := period.ApplyPayment(payment.ID, paymentToPeriod)
-		if error := s.loanRepository.StoreBillMovement(&loanPeriodMovement); error != nil {
-			return error
-		}
-		if error := s.loanRepository.UpdateBill(&period); error != nil {
-			return error
-		}
-		if period.FinalPrincipal.LessThanOrEqual(decimal.Zero) {
-			s.closeLoan(period.LoanID)
-		}
-		paidPeriods = append(paidPeriods, period)                             //I will use it for a store in batch
-		paidPeriodMovements = append(paidPeriodMovements, loanPeriodMovement) //I will use it for a store in batch
-		remainingPayment = remainingPayment.Sub(paymentToPeriod).RoundBank(config.Round)
 	}
 
-	lastPaidPeriodIndex := len(paidPeriods) - 1
-	lastPaidPeriod := paidPeriods[lastPaidPeriodIndex]
-	if lastPaidPeriod.TotalPaidExtraToPrincipal.GreaterThan(decimal.Zero) && lastPaidPeriod.FinalPrincipal.GreaterThan(decimal.Zero) {
-		//TODO: apply pay to principal to next periods
+	/*if error := loanRepository.StorePayment(payment); error != nil {
+		return error
 	}
-
+	if error := s.loanRepository.StoreBillMovement(&loanPeriodMovement); error != nil {
+		return error
+	}
+	if error := s.loanRepository.UpdateBill(&period); error != nil {
+		return error
+	}*/
 	return nil
 }
 
