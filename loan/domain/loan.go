@@ -52,6 +52,7 @@ func NewLoanForCreate(
 	loan.calculatePaymentAgreed()
 	loan.calculateCloseDateAgreed()
 	loan.calculatePeriods()
+	loan.roundDecimalValues()
 	loan.State = LoanStateActive
 	return loan, nil
 }
@@ -72,7 +73,7 @@ func (l *Loan) validateForCreation() error {
 }
 
 func (l *Loan) calculatePaymentAgreed() {
-	l.PaymentAgreed = financial.CalculatePayment(l.Principal, l.InterestRatePeriod, int(l.PeriodNumbers)).RoundBank(config.Round)
+	l.PaymentAgreed = financial.CalculatePayment(l.Principal, l.InterestRatePeriod, int(l.PeriodNumbers))
 }
 
 func (l *Loan) calculateCloseDateAgreed() {
@@ -106,4 +107,26 @@ func (l *Loan) calculatePeriods() {
 
 	}
 	l.periods = periods
+}
+
+func (l *Loan) roundDecimalValues() {
+	l.PaymentAgreed = l.PaymentAgreed.RoundBank(config.Round)
+	periods := l.periods
+	for index, amoritzation := range periods {
+		periods[index].InitialPrincipal = periods[index].InitialPrincipal.RoundBank(config.Round)
+		periods[index].Payment = periods[index].Payment.RoundBank(config.Round)
+		periods[index].InterestRate = periods[index].InterestRate.RoundBank(config.Round)
+		periods[index].PrincipalOfPayment = periods[index].PrincipalOfPayment.RoundBank(config.Round)
+		periods[index].InterestOfPayment = periods[index].InterestOfPayment.RoundBank(config.Round)
+		periods[index].FinalPrincipal = amoritzation.FinalPrincipal.RoundBank(config.Round)
+		periods[index].TotalDebtOfPayment = periods[index].TotalDebtOfPayment.RoundBank(config.Round)
+
+	}
+	l.periods = periods
+}
+
+func (l *Loan) LiquidateLoan(liquidationDate time.Time) {
+	for _, period := range l.periods {
+		period.LiquidateByDate(liquidationDate)
+	}
 }

@@ -2,6 +2,8 @@ package utils
 
 import (
 	"time"
+
+	"github.com/harold2111/loans/shared/config"
 )
 
 //fixed := time.FixedZone("-05:00", 0) get time in utc witout fix timezone
@@ -29,4 +31,10 @@ func AddMothToTimeForPayment(startTime time.Time, monthToAdd int) time.Time {
 		return endTimeWithLastMothDay
 	}
 	return endTime
+}
+
+func DateWithoutTime(year, month, day int) time.Time {
+	const RFC3339FullDate = "2006-01-02"
+	x := time.Date(year, time.Month(month), day, 0, 0, 0, 0, config.DefaultLocation())
+	return x
 }

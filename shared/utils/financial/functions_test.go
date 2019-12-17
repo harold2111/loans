@@ -7,7 +7,7 @@ import (
 )
 
 const (
-	round int32 = 6
+	round = 6
 )
 
 func TestCalculatePaymentExpectedSuccess(t *testing.T) {
@@ -30,7 +30,7 @@ func TestAmortizations(t *testing.T) {
 	if size != periodNumbers {
 		t.Fatalf("Expected %v but got %v", periodNumbers, size)
 	}
-	if !amortitationTable[size-1].FinalPrincipal.Equal(decimal.Zero) {
+	if !amortitationTable[size-1].FinalPrincipal.RoundBank(round).Equal(decimal.Zero) {
 		t.Fatalf("Expected %v but got %v", decimal.Zero, amortitationTable[size-1].FinalPrincipal)
 	}
 }

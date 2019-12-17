@@ -14,7 +14,6 @@ type Balance struct {
 }
 
 func (balance *Balance) calculateAmountBalance() {
-	//round := config.Round
 	toInterest := balance.InitialPrincipal.Mul(balance.InterestRatePeriod)
 	toPrincipal := balance.Payment.Sub(toInterest)
 	finalPrincipal := balance.InitialPrincipal.Sub(toPrincipal)

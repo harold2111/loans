@@ -3,31 +3,17 @@ package financial
 import (
 	"strconv"
 
-	"github.com/harold2111/loans/shared/config"
 	"github.com/shopspring/decimal"
 )
 
 func CalculatePayment(principal decimal.Decimal, interestRatePeriod decimal.Decimal, periodNumbers int) decimal.Decimal {
-	one := decimal.NewFromFloat(1)
-	n, _ := decimal.NewFromString(strconv.Itoa(periodNumbers))
-	nNeg := n.Neg()
-	rate := interestRatePeriod
-
-	rateMulPrincipal := rate.Mul(principal)
-	ratePlusOne := rate.Add(one)
-	ratePlusOnePowNNeg := ratePlusOne.Pow(nNeg)
-	oneMinusRatePlusOnePowNNeg := one.Sub(ratePlusOnePowNNeg)
-
-	payment := rateMulPrincipal.Div(oneMinusRatePlusOnePowNNeg)
-
-	return payment.RoundBank(config.Round)
+	return rawPayment(principal, interestRatePeriod, periodNumbers)
 }
 
 func Amortizations(principal decimal.Decimal, interestRatePeriod decimal.Decimal, periodNumbers int) []Balance {
-	//round := config.Round
 	balances := make([]Balance, periodNumbers)
 	balances[0].InitialPrincipal = principal
-	balances[0].Payment = CalculatePayment(principal, interestRatePeriod, periodNumbers)
+	balances[0].Payment = rawPayment(principal, interestRatePeriod, periodNumbers)
 	balances[0].InterestRatePeriod = interestRatePeriod
 	balances[0].calculateAmountBalance()
 	for period := 1; period < periodNumbers; period++ {
@@ -46,7 +32,7 @@ func NextBalanceFromBefore(beforeBalance Balance) Balance {
 }
 
 func BalanceExpectedInSpecificPeriod(principal decimal.Decimal, interestRatePeriod decimal.Decimal, periodNumbers int, specificPeriod int) Balance {
-	payment := CalculatePayment(principal, interestRatePeriod, periodNumbers)
+	payment := rawPayment(principal, interestRatePeriod, periodNumbers)
 	initialBalance := Balance{}
 	initialBalance.InitialPrincipal = principal
 	initialBalance.Payment = payment
@@ -76,4 +62,20 @@ func EffectiveMonthlyToAnnual(monthlyRate decimal.Decimal) decimal.Decimal {
 	onePlusMonthlyRatePoWTwelve := onePlusMonthlyRate.Pow(decimal.NewFromFloat(12))
 	onePlusMonthlyRatePoWTwelveMinusOne := onePlusMonthlyRatePoWTwelve.Sub(one)
 	return onePlusMonthlyRatePoWTwelveMinusOne
+}
+
+func rawPayment(principal decimal.Decimal, interestRatePeriod decimal.Decimal, periodNumbers int) decimal.Decimal {
+	one := decimal.NewFromFloat(1)
+	n, _ := decimal.NewFromString(strconv.Itoa(periodNumbers))
+	nNeg := n.Neg()
+	rate := interestRatePeriod
+
+	rateMulPrincipal := rate.Mul(principal)
+	ratePlusOne := rate.Add(one)
+	ratePlusOnePowNNeg := ratePlusOne.Pow(nNeg)
+	oneMinusRatePlusOnePowNNeg := one.Sub(ratePlusOnePowNNeg)
+
+	payment := rateMulPrincipal.Div(oneMinusRatePlusOnePowNNeg)
+
+	return payment
 }

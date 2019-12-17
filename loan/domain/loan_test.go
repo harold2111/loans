@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/harold2111/loans/shared/config"
+	"github.com/harold2111/loans/shared/utils"
 	"github.com/shopspring/decimal"
 )
 
@@ -33,13 +33,13 @@ func TestNewLoanForCreate(t *testing.T) {
 	}{
 		{
 			"CreateLoanTest-1",
-			args{decimal.NewFromFloat(450000.0), decimal.NewFromFloat(0.05), 36, parseDateWithoutTime("2019-12-16"), 1},
-			expected{decimal.NewFromFloat(450000.0), decimal.NewFromFloat(0.05), 36, parseDateWithoutTime("2019-12-16"), decimal.NewFromFloat(27195.5057), LoanStateActive, parseDateWithoutTime("2022-12-16"), 1},
+			args{decimal.NewFromFloat(450000.0), decimal.NewFromFloat(0.05), 36, utils.DateWithoutTime(2019, 12, 16), 1},
+			expected{decimal.NewFromFloat(450000.0), decimal.NewFromFloat(0.05), 36, utils.DateWithoutTime(2019, 12, 16), decimal.NewFromFloat(27195.5057), LoanStateActive, utils.DateWithoutTime(2022, 12, 16), 1},
 		},
 		{
 			"CreateLoanTest-2",
-			args{decimal.NewFromFloat(1000.0), decimal.NewFromFloat(0.01), 12, parseDateWithoutTime("2019-12-16"), 1},
-			expected{decimal.NewFromFloat(1000.0), decimal.NewFromFloat(0.01), 12, parseDateWithoutTime("2019-12-16"), decimal.NewFromFloat(88.8488), LoanStateActive, parseDateWithoutTime("2020-12-16"), 1},
+			args{decimal.NewFromFloat(1000.0), decimal.NewFromFloat(0.01), 12, utils.DateWithoutTime(2019, 12, 16), 1},
+			expected{decimal.NewFromFloat(1000.0), decimal.NewFromFloat(0.01), 12, utils.DateWithoutTime(2019, 12, 16), decimal.NewFromFloat(88.8488), LoanStateActive, utils.DateWithoutTime(2020, 12, 16), 1},
 		},
 	}
 	for _, tt := range tests {
@@ -82,67 +82,20 @@ func TestNewLoanForCreate(t *testing.T) {
 	}
 }
 
-func parseDateWithoutTime(timeString string) time.Time {
-	const RFC3339FullDate = "2006-01-02"
-	parsedTime, _ := time.ParseInLocation(RFC3339FullDate, timeString, config.DefaultLocation())
-	return parsedTime
-}
-
-func TestLoan_validateForCreation(t *testing.T) {
-	tests := []struct {
-		name    string
-		l       *Loan
-		wantErr bool
-	}{
-		// TODO: Add test cases.
+func TestLoan_LiquidateLoan(t *testing.T) {
+	type args struct {
+		liquidationDate time.Time
 	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if err := tt.l.validateForCreation(); (err != nil) != tt.wantErr {
-				t.Errorf("Loan.validateForCreation() error = %v, wantErr %v", err, tt.wantErr)
-			}
-		})
-	}
-}
-
-func TestLoan_calculatePaymentAgreed(t *testing.T) {
 	tests := []struct {
 		name string
 		l    *Loan
+		args args
 	}{
 		// TODO: Add test cases.
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			tt.l.calculatePaymentAgreed()
-		})
-	}
-}
-
-func TestLoan_calculateCloseDateAgreed(t *testing.T) {
-	tests := []struct {
-		name string
-		l    *Loan
-	}{
-		// TODO: Add test cases.
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			tt.l.calculateCloseDateAgreed()
-		})
-	}
-}
-
-func TestLoan_calculatePeriods(t *testing.T) {
-	tests := []struct {
-		name string
-		l    *Loan
-	}{
-		// TODO: Add test cases.
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			tt.l.calculatePeriods()
+			tt.l.LiquidateLoan(tt.args.liquidationDate)
 		})
 	}
 }
