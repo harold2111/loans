@@ -2,7 +2,7 @@ package utils
 
 import (
 	"fmt"
-	"loans/shared/errors"
+	"github.com/harold2111/loans/shared/errors"
 	"strings"
 
 	"gopkg.in/go-playground/validator.v9"
@@ -15,6 +15,9 @@ func InitValidator() {
 }
 
 func ValidateStruct(s interface{}) error {
+	if Validate == nil {
+		InitValidator()
+	}
 	if error := Validate.Struct(s); error != nil {
 		firstValidationError := error.(validator.ValidationErrors)[0]
 
@@ -45,6 +48,9 @@ func ValidateStruct(s interface{}) error {
 }
 
 func ValidateVar(fieldName string, field interface{}, tag string) error {
+	if Validate == nil {
+		InitValidator()
+	}
 	if error := Validate.Var(field, tag); error != nil {
 		firstValidationError := error.(validator.ValidationErrors)[0]
 		fmt.Println(fieldName)

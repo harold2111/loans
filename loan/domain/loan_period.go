@@ -1,15 +1,16 @@
 package domain
 
 import (
-	"loans/shared/config"
-	"loans/shared/utils"
-	"loans/shared/utils/financial"
+	"github.com/harold2111/loans/shared/config"
+	"github.com/harold2111/loans/shared/utils"
+	"github.com/harold2111/loans/shared/utils/financial"
 	"time"
 
 	"github.com/shopspring/decimal"
 )
 
 const (
+	LoanPeriodStateOpen      = "OPEN"
 	LoanPeriodStateDue       = "DUE"
 	LoanPeriodStatePaid      = "PAID"
 	LoanPeriodStateAnnuelled = "ANNULLED"
@@ -128,9 +129,6 @@ func calculateDaysLate(lastLiquidationDate, liquidationDate time.Time) int {
 	daysLate := 0
 	if liquidationDate.After(lastLiquidationDate) {
 		daysLate = utils.DaysBetween(lastLiquidationDate, liquidationDate)
-		if daysLate < 0 {
-			daysLate = 0
-		}
 	}
 	return daysLate
 }

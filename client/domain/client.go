@@ -1,8 +1,8 @@
 package domain
 
 import (
-	"loans/shared/errors"
-	"loans/shared/utils"
+	"github.com/harold2111/loans/shared/errors"
+	"github.com/harold2111/loans/shared/utils"
 	"time"
 )
 

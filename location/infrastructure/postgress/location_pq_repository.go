@@ -1,8 +1,8 @@
 package postgres
 
 import (
-	locationDomain "loans/location/domain"
-	"loans/shared/errors"
+	locationDomain "github.com/harold2111/loans/location/domain"
+	"github.com/harold2111/loans/shared/errors"
 
 	"github.com/jinzhu/gorm"
 )

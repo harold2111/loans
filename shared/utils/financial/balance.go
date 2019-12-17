@@ -12,3 +12,14 @@ type Balance struct {
 	ToPrincipal        decimal.Decimal `json:"toPrincipal"`
 	FinalPrincipal     decimal.Decimal `json:"finalPrincipal"`
 }
+
+func (balance *Balance) calculateAmountBalance() {
+	//round := config.Round
+	toInterest := balance.InitialPrincipal.Mul(balance.InterestRatePeriod)
+	toPrincipal := balance.Payment.Sub(toInterest)
+	finalPrincipal := balance.InitialPrincipal.Sub(toPrincipal)
+
+	balance.ToInterest = toInterest
+	balance.ToPrincipal = toPrincipal
+	balance.FinalPrincipal = finalPrincipal
+}

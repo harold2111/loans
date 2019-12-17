@@ -1,11 +1,11 @@
 package application
 
 import (
-	clientDomain "loans/client/domain"
-	loanDomain "loans/loan/domain"
-	"loans/shared/config"
-	"loans/shared/utils"
-	"loans/shared/utils/financial"
+	clientDomain "github.com/harold2111/loans/client/domain"
+	loanDomain "github.com/harold2111/loans/loan/domain"
+	"github.com/harold2111/loans/shared/config"
+	"github.com/harold2111/loans/shared/utils"
+	"github.com/harold2111/loans/shared/utils/financial"
 
 	"github.com/shopspring/decimal"
 )
@@ -82,18 +82,21 @@ func (s *LoanService) PayLoan(payment *loanDomain.Payment) error {
 		return error
 	}
 	//Liquidate Periods
+	/*
+	Como nota primero deberia aplicar los pagos corrientes y luego deberia decidir que hacer con el excedente
+	en caso de que se haya pagado algun extra.
+	*/
 	for _, period := range loanPeriodsWithDebt {
 		period.LiquidateByDate(payment.PaymentDate)
 	}
 	var paidPeriods []loanDomain.LoanPeriod
 	var paidPeriodMovements []loanDomain.LoanPeriodMovement
 	remainingPayment := payment.PaymentAmount.RoundBank(config.Round)
-	var paymentToInitialPrincipal decimal.Decimal
 	continueApplyingPayment := true
-	for index, period := range loanPeriodsWithDebt {
+	for _, period := range loanPeriodsWithDebt {
 		paymentToPeriod := decimal.Zero
 		if continueApplyingPayment {
-			if remainingPayment.LessThanOrEqual(period.TotalDebt) || len(loanPeriodsWithDebt) == (index+1) {
+			if remainingPayment.LessThanOrEqual(period.TotalDebt) {
 				paymentToPeriod = remainingPayment
 			} else {
 				paymentToPeriod = period.TotalDebt
@@ -106,9 +109,6 @@ func (s *LoanService) PayLoan(payment *loanDomain.Payment) error {
 			}
 			remainingPayment = remainingPayment.Sub(paymentToPeriod).RoundBank(config.Round)
 			continueApplyingPayment = remainingPayment.LessThanOrEqual(decimal.Zero)
-		}
-		if !continueApplyingPayment {
-			paymentToNextInitialPrincipal = period.TotalPaidExtraToPrincipal
 		}
 	}
 

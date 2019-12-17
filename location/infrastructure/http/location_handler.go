@@ -1,7 +1,7 @@
 package http
 
 import (
-	locationApplication "loans/location/application"
+	locationApplication "github.com/harold2111/loans/location/application"
 	"net/http"
 	"strconv"
 

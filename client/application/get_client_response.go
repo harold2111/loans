@@ -1,6 +1,6 @@
 package application
 
-import clientDomain "loans/client/domain"
+import clientDomain "github.com/harold2111/loans/client/domain"
 
 type GetClientResponse struct {
 	ID             uint                       `json:"id"`

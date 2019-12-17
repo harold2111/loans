@@ -1,9 +1,9 @@
 package application
 
 import (
-	clientDomain "loans/client/domain"
-	locationDomain "loans/location/domain"
-	"loans/shared/errors"
+	clientDomain "github.com/harold2111/loans/client/domain"
+	locationDomain "github.com/harold2111/loans/location/domain"
+	"github.com/harold2111/loans/shared/errors"
 )
 
 type ClientService struct {

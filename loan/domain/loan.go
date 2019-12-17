@@ -1,9 +1,9 @@
 package domain
 
 import (
-	"loans/shared/config"
-	"loans/shared/utils"
-	"loans/shared/utils/financial"
+	"github.com/harold2111/loans/shared/config"
+	"github.com/harold2111/loans/shared/utils"
+	"github.com/harold2111/loans/shared/utils/financial"
 	"time"
 
 	"github.com/shopspring/decimal"

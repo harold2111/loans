@@ -1,7 +1,7 @@
 package application
 
 import (
-	locationDomain "loans/location/domain"
+	locationDomain "github.com/harold2111/loans/location/domain"
 )
 
 type LocationService struct {

@@ -1,7 +1,7 @@
 package http
 
 import (
-	clientApplication "loans/client/application"
+	clientApplication "github.com/harold2111/loans/client/application"
 	"net/http"
 	"strconv"
 

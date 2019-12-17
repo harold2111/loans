@@ -1,7 +1,7 @@
 package utils
 
 import (
-	"loans/shared/config"
+	"github.com/harold2111/loans/shared/config"
 	"testing"
 	"time"
 )

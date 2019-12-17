@@ -2,8 +2,8 @@ package http
 
 //TODO: REMOVE CALLS TO MODEL
 import (
-	loanApplication "loans/loan/application"
-	loanDomain "loans/loan/domain"
+	loanApplication "github.com/harold2111/loans/loan/application"
+	loanDomain "github.com/harold2111/loans/loan/domain"
 	"net/http"
 
 	"github.com/jinzhu/copier"
@@ -19,9 +19,9 @@ func NewLoanHttpHandler(e *echo.Echo, loanService loanApplication.LoanService) {
 		LoanService: loanService,
 	}
 	e.GET("/api/loans", handler.handleFindAllLoans)
-	e.POST("/api/loans/simulate", handler.handleSimulateLoan)
+	e.POST("/api/github.com/harold2111/loans/simulate", handler.handleSimulateLoan)
 	e.POST("/api/loans", handler.handleCreateLoan)
-	e.POST("/api/loans/payments", handler.handlePayLoan)
+	e.POST("/api/github.com/harold2111/loans/payments", handler.handlePayLoan)
 }
 
 func (handler *HttpLoanHandler) handleFindAllLoans(context echo.Context) error {

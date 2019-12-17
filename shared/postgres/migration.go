@@ -1,9 +1,9 @@
 package postgres
 
 import (
-	clientnDomain "loans/client/domain"
-	loanDomain "loans/loan/domain"
-	locationDomain "loans/location/domain"
+	clientnDomain "github.com/harold2111/loans/client/domain"
+	loanDomain "github.com/harold2111/loans/loan/domain"
+	locationDomain "github.com/harold2111/loans/location/domain"
 
 	"github.com/jinzhu/gorm"
 )

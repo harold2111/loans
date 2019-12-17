@@ -1,7 +1,6 @@
 package utils
 
 import (
-	"math"
 	"time"
 )
 
@@ -12,7 +11,7 @@ func DaysBetween(before, after time.Time) int {
 	afterFixed := FixTimeToZeroHours(after)
 	diff := afterFixed.Sub(beforeFixed)
 	hours := diff.Hours()
-	days := math.Abs(hours / 24)
+	days := hours / 24
 	return int(days)
 }
 

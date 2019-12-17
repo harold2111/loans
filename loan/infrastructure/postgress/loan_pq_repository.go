@@ -1,8 +1,8 @@
 package postgres
 
 import (
-	loanDomain "loans/loan/domain"
-	"loans/shared/errors"
+	loanDomain "github.com/harold2111/loans/loan/domain"
+	"github.com/harold2111/loans/shared/errors"
 
 	"github.com/jinzhu/gorm"
 )
@@ -65,14 +65,14 @@ func (r *loanRepository) FindBillsByLoanID(loanID uint) ([]loanDomain.LoanPeriod
 
 func (r *loanRepository) FindBillsWithDueOrOpenOrderedByPeriodAsc(loanID uint) ([]loanDomain.LoanPeriod, error) {
 	var bills []loanDomain.LoanPeriod
-	r.db.Order("period").Find(&bills, "loan_id = ? AND state = ? OR period_status = ?", loanID, loanDomain.LoanPeriodStateDue, loanDomain.PeriodStatusOpen)
+	r.db.Order("period").Find(&bills, "loan_id = ? AND state = ? OR period_status = ?", loanID, loanDomain.LoanPeriodStateDue, loanDomain.LoanPeriodStateOpen)
 	return bills, nil
 }
 
 func (r *loanRepository) FindBillOpenPeriodByLoanID(loanID uint) (loanDomain.LoanPeriod, error) {
 	bill := loanDomain.LoanPeriod{}
 	error := r.db.Raw("SELECT * FROM bills WHERE loan_id = ? AND period_status = ? AND period = (SELECT max(period) FROM bills where loan_id = ?)",
-		loanID, loanDomain.PeriodStatusOpen, loanID).Scan(&bill).Error
+		loanID, loanDomain.LoanPeriodStateOpen, loanID).Scan(&bill).Error
 	return bill, error
 }
 
