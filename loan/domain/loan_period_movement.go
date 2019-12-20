@@ -33,9 +33,9 @@ type LoanPeriodMovement struct {
 
 func (loanPeriodMovement *LoanPeriodMovement) fillInitialMovementFromPeriod(period LoanPeriod) {
 	loanPeriodMovement.LoandPeriodID = period.ID
-	loanPeriodMovement.LiquidationDate = period.LastLiquidationDate
-	loanPeriodMovement.DaysInArrearsSinceLastLiquidation = period.DaysInArrearsSinceLastLiquidation
-	loanPeriodMovement.DebtForArrearsSinceLastLiquidation = period.DebtForArrearsSinceLastLiquidation
+	loanPeriodMovement.LiquidationDate = period.LastPaymentDate
+	loanPeriodMovement.DaysInArrearsSinceLastLiquidation = period.DaysInArrearsSinceLastPayment
+	loanPeriodMovement.DebtForArrearsSinceLastLiquidation = period.DebtForArrearsSinceLastPayment
 	loanPeriodMovement.InitialDebtForArrears = period.TotalDebtForArrears
 	loanPeriodMovement.InitialDebtOfPayment = period.TotalDebtOfPayment
 	loanPeriodMovement.InitialDebt = period.TotalDebt

@@ -1,10 +1,11 @@
 package domain
 
 import (
+	"time"
+
 	"github.com/harold2111/loans/shared/config"
 	"github.com/harold2111/loans/shared/utils"
 	"github.com/harold2111/loans/shared/utils/financial"
-	"time"
 
 	"github.com/shopspring/decimal"
 )
@@ -28,6 +29,7 @@ type Loan struct {
 	CloseDate          *time.Time
 	State              string
 	periods            []LoanPeriod
+	GraceDays          uint
 	ClientID           uint `gorm:"not null"`
 }
 
@@ -36,6 +38,7 @@ func NewLoanForCreate(
 	interestRatePeriod decimal.Decimal,
 	periodNumbers uint,
 	startDate time.Time,
+	graceDays uint,
 	clientID uint) (Loan, error) {
 
 	loan := Loan{
@@ -43,6 +46,7 @@ func NewLoanForCreate(
 		InterestRatePeriod: interestRatePeriod,
 		PeriodNumbers:      periodNumbers,
 		StartDate:          startDate,
+		GraceDays:          graceDays,
 		ClientID:           clientID,
 	}
 	if error := loan.validateForCreation(); error != nil {
@@ -55,6 +59,12 @@ func NewLoanForCreate(
 	loan.roundDecimalValues()
 	loan.State = LoanStateActive
 	return loan, nil
+}
+
+func (l *Loan) LiquidateLoan(liquidationDate time.Time) {
+	for index := 0; index < len(l.periods); index++ {
+		l.periods[index].LiquidateByDate(liquidationDate, l.GraceDays)
+	}
 }
 
 func (l *Loan) validateForCreation() error {
@@ -85,14 +95,16 @@ func (l *Loan) calculatePeriods() {
 	periods := make([]LoanPeriod, len(amortizations))
 	for index, amoritzation := range amortizations {
 		var startDate time.Time
+		var endDate time.Time
+		periodNumber := index + 1
 		if index == 0 {
 			startDate = l.StartDate
 		} else {
-			startDate = utils.AddMothToTimeForPayment(l.StartDate, index+1)
+			startDate = utils.AddMothToTimeForPayment(l.StartDate, periodNumber-1)
 		}
-		endDate := utils.AddMothToTimeForPayment(startDate, index+1)
-		periods[index].PeriodNumber = uint(index) + 1
-		periods[index].State = LoanPeriodStateDue
+		endDate = utils.AddMothToTimeForPayment(l.StartDate, periodNumber).AddDate(0, 0, -1)
+		periods[index].PeriodNumber = uint(periodNumber)
+		periods[index].State = LoanPeriodStateOpen
 		periods[index].StartDate = startDate
 		periods[index].EndDate = endDate
 		periods[index].PaymentDate = endDate
@@ -102,8 +114,9 @@ func (l *Loan) calculatePeriods() {
 		periods[index].PrincipalOfPayment = amoritzation.ToPrincipal
 		periods[index].InterestOfPayment = amoritzation.ToInterest
 		periods[index].FinalPrincipal = amoritzation.FinalPrincipal
-		periods[index].LastLiquidationDate = endDate
+		periods[index].LastPaymentDate = endDate
 		periods[index].TotalDebtOfPayment = amoritzation.Payment
+		periods[index].TotalDebt = amoritzation.Payment
 
 	}
 	l.periods = periods
@@ -120,13 +133,8 @@ func (l *Loan) roundDecimalValues() {
 		periods[index].InterestOfPayment = periods[index].InterestOfPayment.RoundBank(config.Round)
 		periods[index].FinalPrincipal = amoritzation.FinalPrincipal.RoundBank(config.Round)
 		periods[index].TotalDebtOfPayment = periods[index].TotalDebtOfPayment.RoundBank(config.Round)
+		periods[index].TotalDebt = periods[index].TotalDebt.RoundBank(config.Round)
 
 	}
 	l.periods = periods
-}
-
-func (l *Loan) LiquidateLoan(liquidationDate time.Time) {
-	for _, period := range l.periods {
-		period.LiquidateByDate(liquidationDate)
-	}
 }

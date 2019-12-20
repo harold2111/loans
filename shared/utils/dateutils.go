@@ -23,11 +23,10 @@ func FixTimeToZeroHours(timeToFix time.Time) time.Time {
 
 func AddMothToTimeForPayment(startTime time.Time, monthToAdd int) time.Time {
 	endTime := startTime.AddDate(0, monthToAdd, 0)
-	endTime = time.Date(endTime.Year(), endTime.Month(), startTime.Day(),
-		endTime.Hour(), endTime.Minute(), endTime.Second(), endTime.Nanosecond(), endTime.Location())
+	//Set the day to 0 select the last day of the previous month
 	endTimeWithLastMothDay := time.Date(endTime.Year(), endTime.Month(), 0,
 		endTime.Hour(), endTime.Minute(), endTime.Second(), endTime.Nanosecond(), endTime.Location())
-	if startTime.Day() > endTimeWithLastMothDay.Day() {
+	if startTime.Day() != endTime.Day() {
 		return endTimeWithLastMothDay
 	}
 	return endTime
