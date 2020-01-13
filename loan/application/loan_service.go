@@ -83,11 +83,11 @@ func (s *LoanService) PayLoan(payment *loanDomain.Payment) error {
 	}
 	//Liquidate Periods
 	/*
-	Como nota primero deberia aplicar los pagos corrientes y luego deberia decidir que hacer con el excedente
-	en caso de que se haya pagado algun extra.
+		Como nota primero deberia aplicar los pagos corrientes y luego deberia decidir que hacer con el excedente
+		en caso de que se haya pagado algun extra.
 	*/
 	for _, period := range loanPeriodsWithDebt {
-		period.LiquidateByDate(payment.PaymentDate)
+		period.LiquidateByDate(payment.PaymentDate, 0)
 	}
 	var paidPeriods []loanDomain.LoanPeriod
 	var paidPeriodMovements []loanDomain.LoanPeriodMovement

@@ -67,6 +67,13 @@ func (l *Loan) LiquidateLoan(liquidationDate time.Time) {
 	}
 }
 
+func (l *Loan) ApplyPayment(payment Payment) {
+	remainingPayment := payment.PaymentAmount
+	for index := 0; index < len(l.periods); index++ {
+		remainingPayment = l.periods[index].ApplyPayment(payment.ID, remainingPayment)
+	}
+}
+
 func (l *Loan) validateForCreation() error {
 	if error := utils.ValidateVar("principal", l.Principal, "required"); error != nil {
 		return error

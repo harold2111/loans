@@ -19,6 +19,7 @@ const (
 type LoanPeriod struct {
 	ID                 uint `gorm:"primary_key"`
 	LoanID             uint
+	Movements          []LoanPeriodMovement
 	CreatedAt          time.Time
 	UpdatedAt          time.Time
 	DeletedAt          *time.Time `sql:"index"`
@@ -49,19 +50,18 @@ type LoanPeriod struct {
 
 func (period *LoanPeriod) LiquidateByDate(liquidationDate time.Time, graceDays uint) {
 	liquidationDatePlusGraceDays := liquidationDate.AddDate(0, 0, int(graceDays))
-	if period.State == LoanPeriodStateDue && liquidationDatePlusGraceDays.After(period.LastPaymentDate) {
+	if period.isLiquidableState() && liquidationDatePlusGraceDays.After(period.LastPaymentDate) {
 		daysInArrearsSinceLastPayment := calculateDaysLate(period.LastPaymentDate, liquidationDate)
-		debtForArrearsSinceLastPayment := financial.FeeLateWithPeriodInterest(period.InterestRate, period.TotalDebtOfPayment, daysInArrearsSinceLastPayment).RoundBank(config.Round)
-
+		debtForArrearsSinceLastPayment := financial.FeeLateWithPeriodInterest(period.InterestRate, period.TotalDebtOfPayment, daysInArrearsSinceLastPayment)
 		period.DaysInArrearsSinceLastPayment = daysInArrearsSinceLastPayment
-		period.DebtForArrearsSinceLastPayment = debtForArrearsSinceLastPayment
+		period.DebtForArrearsSinceLastPayment = debtForArrearsSinceLastPayment.RoundBank(config.Round)
 		period.TotalDaysInArrears = period.TotalDaysInArrears + daysInArrearsSinceLastPayment
 		period.TotalDebtForArrears = period.TotalDebtForArrears.Add(debtForArrearsSinceLastPayment).RoundBank(config.Round)
-		period.TotalDebt = period.TotalDebtOfPayment.Add(period.TotalDebtForArrears)
+		period.TotalDebt = period.TotalDebtOfPayment.Add(period.TotalDebtForArrears).RoundBank(config.Round)
 	}
 }
 
-func (period *LoanPeriod) ApplyPayment(paymentID uint, payment decimal.Decimal) LoanPeriodMovement {
+func (period *LoanPeriod) ApplyPayment(paymentID uint, payment decimal.Decimal) decimal.Decimal {
 	var periodMovement LoanPeriodMovement
 	periodMovement.fillInitialMovementFromPeriod(*period)
 	periodMovement.PaymentID = paymentID
@@ -78,7 +78,8 @@ func (period *LoanPeriod) ApplyPayment(paymentID uint, payment decimal.Decimal) 
 		period.State = LoanPeriodStatePaid
 	}
 	periodMovement.fillFinalMovementFromPeriod(*period)
-	return periodMovement
+	period.Movements = append(period.Movements, periodMovement)
+	return remainingPayment
 }
 
 func (period *LoanPeriod) applyPaymentToDebtForArrears(periodMovement *LoanPeriodMovement, payment decimal.Decimal) decimal.Decimal {
@@ -132,4 +133,13 @@ func calculateDaysLate(lastLiquidationDate, liquidationDate time.Time) int {
 		daysLate = utils.DaysBetween(lastLiquidationDate, liquidationDate)
 	}
 	return daysLate
+}
+
+func (period *LoanPeriod) isLiquidableState() bool {
+	switch period.State {
+	case LoanPeriodStateOpen, LoanPeriodStateDue:
+		return true
+	default:
+		return false
+	}
 }

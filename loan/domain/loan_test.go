@@ -15,6 +15,7 @@ type createLoanArgs struct {
 	periodNumbers      uint
 	startDate          time.Time
 	clientID           uint
+	liquidationDate    *time.Time
 }
 
 func TestNewLoanForCreate(t *testing.T) {
@@ -29,12 +30,12 @@ func TestNewLoanForCreate(t *testing.T) {
 	}{
 		{
 			"CreateLoanTest-1",
-			createLoanArgs{toDecimal(450000.0), toDecimal(0.05), 36, toDate(2019, 12, 16), 1},
+			createLoanArgs{toDecimal(450000.0), toDecimal(0.05), 36, toDate(2019, 12, 16), 1, nil},
 			expected{toDecimal(27195.5057), toDate(2022, 12, 16)},
 		},
 		{
 			"CreateLoanTest-2",
-			createLoanArgs{toDecimal(1000.0), toDecimal(0.01), 12, toDate(2019, 12, 16), 1},
+			createLoanArgs{toDecimal(1000.0), toDecimal(0.01), 12, toDate(2019, 12, 16), 1, nil},
 			expected{toDecimal(88.8488), toDate(2020, 12, 16)},
 		},
 	}
@@ -82,7 +83,7 @@ func TestNewLoanForCreate(t *testing.T) {
 }
 
 func TestNewLoanForCreate_periods(t *testing.T) {
-	type expectedPeriod struct {
+	type periodExpected struct {
 		periodNumber       uint
 		startDate          time.Time
 		endDate            time.Time
@@ -94,12 +95,12 @@ func TestNewLoanForCreate_periods(t *testing.T) {
 	tests := []struct {
 		name string
 		args createLoanArgs
-		want []expectedPeriod
+		want []periodExpected
 	}{
 		{
-			"CreateLoanTest_periods-1",
-			createLoanArgs{toDecimal(3500000), toDecimal(0.02), 5, toDate(2019, 1, 31), 1},
-			[]expectedPeriod{
+			"TestNewLoanForCreate_periods-1",
+			createLoanArgs{toDecimal(3500000), toDecimal(0.02), 5, toDate(2019, 1, 31), 1, nil},
+			[]periodExpected{
 				{1, toDate(2019, 1, 31), toDate(2019, 2, 27), toDecimal(3500000), toDecimal(672554.3794), toDecimal(70000), toDecimal(2827445.6206)},
 				{2, toDate(2019, 2, 28), toDate(2019, 3, 30), toDecimal(2827445.6206), toDecimal(686005.4670), toDecimal(56548.9124), toDecimal(2141440.1537)},
 				{3, toDate(2019, 3, 31), toDate(2019, 4, 29), toDecimal(2141440.1537), toDecimal(699725.5763), toDecimal(42828.8031), toDecimal(1441714.5774)},
@@ -108,9 +109,9 @@ func TestNewLoanForCreate_periods(t *testing.T) {
 			},
 		},
 		{
-			"CreateLoanTest_periods-2",
-			createLoanArgs{toDecimal(100000), toDecimal(0.035), 5, toDate(2019, 1, 1), 1},
-			[]expectedPeriod{
+			"TestNewLoanForCreate_periods-2",
+			createLoanArgs{toDecimal(100000), toDecimal(0.035), 5, toDate(2019, 1, 1), 1, nil},
+			[]periodExpected{
 				{1, toDate(2019, 1, 1), toDate(2019, 1, 31), toDecimal(100000), toDecimal(18648.1373), toDecimal(3500), toDecimal(81351.8627)},
 				{2, toDate(2019, 2, 1), toDate(2019, 2, 28), toDecimal(81351.8627), toDecimal(19300.8221), toDecimal(2847.3152), toDecimal(62051.0406)},
 				{3, toDate(2019, 3, 1), toDate(2019, 3, 31), toDecimal(62051.0406), toDecimal(19976.3509), toDecimal(2171.7864), toDecimal(42074.6897)},
@@ -203,72 +204,119 @@ func TestNewLoanForCreate_periods(t *testing.T) {
 	}
 }
 
-/*
-func TestLoan_LiquidateLoanBeforePayments(t *testing.T) {
-	loan, err := NewLoanForCreate(
-		decimal.NewFromFloat(3500000),
-		decimal.NewFromFloat(0.02),
-		36,
-		utils.DateWithoutTime(2019, 6, 10),
-		0,
-		1,
-	)
-	if err != nil {
-		t.Errorf("NewLoanForCreate() error = %v", err)
-		return
+func TestLoan_LiquidatePeriods(t *testing.T) {
+	type liquidationExpected struct {
+		periodNumber                   uint
+		daysInArrearsSinceLastPayment  int
+		debtForArrearsSinceLastPayment decimal.Decimal
+		totalDebt                      decimal.Decimal
 	}
-	liquidationDate := utils.DateWithoutTime(2019, 9, 10)
-	loan.LiquidateLoan(liquidationDate)
-
-	//Period1
-	period1 := loan.periods[0]
-	fmt.Printf("StartDate = %v  , LastPaymentDate = %v \n", period1.StartDate, period1.LastPaymentDate)
-	DaysInArrearsSinceLastPaymentExpected1 := 62
-	if period1.DaysInArrearsSinceLastPayment != DaysInArrearsSinceLastPaymentExpected1 {
-		t.Errorf("DaysInArrearsSinceLastPayment = %v, want %v", period1.DaysInArrearsSinceLastPayment, DaysInArrearsSinceLastPaymentExpected1)
+	liqDate := toDate(2019, 3, 30)
+	tests := []struct {
+		name string
+		args createLoanArgs
+		want []liquidationExpected
+	}{{
+		"TestNewLoanForCreate_LiquidatePeriods-1",
+		createLoanArgs{toDecimal(100000), toDecimal(0.035), 5, toDate(2019, 1, 1), 1, &liqDate},
+		[]liquidationExpected{
+			{1, 58, toDecimal(1498.6906), toDecimal(23646.8279)},
+			{2, 30, toDecimal(775.1848), toDecimal(22923.3221)},
+			{3, 0, decimal.Zero, toDecimal(22148.1373)},
+			{4, 0, decimal.Zero, toDecimal(22148.1373)},
+			{5, 0, decimal.Zero, toDecimal(22148.1373)},
+		},
+	},
 	}
-	DebtForArrearsSinceLastPaymentExpected1 := decimal.NewFromFloat(5675.6860)
-	if !period1.DebtForArrearsSinceLastPayment.Equal(DebtForArrearsSinceLastPaymentExpected1) {
-		t.Errorf("DebtForArrearsSinceLastPayment = %v, want %v", period1.DebtForArrearsSinceLastPayment, DebtForArrearsSinceLastPaymentExpected1)
-	}
-	TotalDaysInArrearsExpected1 := 62
-	if period1.TotalDaysInArrears != TotalDaysInArrearsExpected1 {
-		t.Errorf("TotalDaysInArrears = %v, want %v", period1.TotalDaysInArrears, TotalDaysInArrearsExpected1)
-	}
-	TotalDebtForArrearsExpected1 := decimal.NewFromFloat(5675.6860)
-	if !period1.TotalDebtForArrears.Equal(TotalDebtForArrearsExpected1) {
-		t.Errorf("TotalDebtForArrears = %v, want %v", period1.TotalDebtForArrears, TotalDebtForArrearsExpected1)
-	}
-	TotalDebtExpected1 := decimal.NewFromFloat(142990.6701)
-	if !period1.TotalDebt.Equal(TotalDebtExpected1) {
-		t.Errorf("TotalDebt = %v, want %v", period1.TotalDebt, TotalDebtExpected1)
-	}
-
-	//Period2
-	period2 := loan.periods[1]
-	fmt.Printf("StartDate = %v  , LastPaymentDate = %v \n", period2.StartDate, period2.LastPaymentDate)
-	DaysInArrearsSinceLastPaymentExpected2 := 62
-	if period2.DaysInArrearsSinceLastPayment != DaysInArrearsSinceLastPaymentExpected2 {
-		t.Errorf("DaysInArrearsSinceLastPayment = %v, want %v", period2.DaysInArrearsSinceLastPayment, DaysInArrearsSinceLastPaymentExpected2)
-	}
-	DebtForArrearsSinceLastPaymentExpected2 := decimal.NewFromFloat(5675.6860)
-	if !period2.DebtForArrearsSinceLastPayment.Equal(DebtForArrearsSinceLastPaymentExpected2) {
-		t.Errorf("DebtForArrearsSinceLastPayment = %v, want %v", period2.DebtForArrearsSinceLastPayment, DebtForArrearsSinceLastPaymentExpected2)
-	}
-	TotalDaysInArrearsExpected2 := 62
-	if period2.TotalDaysInArrears != TotalDaysInArrearsExpected2 {
-		t.Errorf("TotalDaysInArrears = %v, want %v", period1.TotalDaysInArrears, TotalDaysInArrearsExpected2)
-	}
-	TotalDebtForArrearsExpected2 := decimal.NewFromFloat(5675.6860)
-	if !period2.TotalDebtForArrears.Equal(TotalDebtForArrearsExpected2) {
-		t.Errorf("TotalDebtForArrears = %v, want %v", period2.TotalDebtForArrears, TotalDebtForArrearsExpected2)
-	}
-	TotalDebtExpected2 := decimal.NewFromFloat(142990.6701)
-	if !period2.TotalDebt.Equal(TotalDebtExpected2) {
-		t.Errorf("TotalDebt = %v, want %v", period2.TotalDebt, TotalDebtExpected2)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := NewLoanForCreate(tt.args.principal, tt.args.interestRatePeriod, tt.args.periodNumbers, tt.args.startDate, config.DefaultGraceDays, tt.args.clientID)
+			if err != nil {
+				t.Errorf("NewLoanForCreate() error = %v", err)
+				return
+			}
+			got.LiquidateLoan(*tt.args.liquidationDate)
+			for _, periodExpected := range tt.want {
+				gotPeriod := got.periods[periodExpected.periodNumber-1]
+				if gotPeriod.PeriodNumber != periodExpected.periodNumber {
+					t.Errorf("PeriodNumber = %v, want %v", gotPeriod.PeriodNumber, periodExpected.periodNumber)
+				}
+				if gotPeriod.DaysInArrearsSinceLastPayment != periodExpected.daysInArrearsSinceLastPayment {
+					t.Errorf("DaysInArrearsSinceLastPayment = %v, want %v", gotPeriod.DaysInArrearsSinceLastPayment, periodExpected.daysInArrearsSinceLastPayment)
+				}
+				if !gotPeriod.DebtForArrearsSinceLastPayment.Equal(periodExpected.debtForArrearsSinceLastPayment) {
+					t.Errorf("DebtForArrearsSinceLastPayment = %v, want %v", gotPeriod.DebtForArrearsSinceLastPayment, periodExpected.debtForArrearsSinceLastPayment)
+				}
+				if gotPeriod.TotalDaysInArrears != periodExpected.daysInArrearsSinceLastPayment {
+					t.Errorf("TotalDaysInArrears = %v, want %v", gotPeriod.TotalDaysInArrears, periodExpected.daysInArrearsSinceLastPayment)
+				}
+				if !gotPeriod.TotalDebtForArrears.Equal(periodExpected.debtForArrearsSinceLastPayment) {
+					t.Errorf("TotalDebtForArrears = %v, want %v", gotPeriod.TotalDebtForArrears, periodExpected.debtForArrearsSinceLastPayment)
+				}
+				if !gotPeriod.TotalDebt.Equal(periodExpected.totalDebt) {
+					t.Errorf("TotalDebt = %v, want %v", gotPeriod.TotalDebt, periodExpected.totalDebt)
+				}
+			}
+		})
 	}
 }
-*/
+
+func TestLoan_payLoan(t *testing.T) {
+	type liquidationExpected struct {
+		periodNumber                   uint
+		daysInArrearsSinceLastPayment  int
+		debtForArrearsSinceLastPayment decimal.Decimal
+		totalDebt                      decimal.Decimal
+	}
+	liqDate := toDate(2019, 3, 30)
+	tests := []struct {
+		name string
+		args createLoanArgs
+		want []liquidationExpected
+	}{{
+		"TestNewLoanForCreate_LiquidatePeriods-1",
+		createLoanArgs{toDecimal(100000), toDecimal(0.035), 5, toDate(2019, 1, 1), 1, &liqDate},
+		[]liquidationExpected{
+			{1, 58, toDecimal(1498.6906), toDecimal(23646.8279)},
+			{2, 30, toDecimal(775.1848), toDecimal(22923.3221)},
+			{3, 0, decimal.Zero, toDecimal(22148.1373)},
+			{4, 0, decimal.Zero, toDecimal(22148.1373)},
+			{5, 0, decimal.Zero, toDecimal(22148.1373)},
+		},
+	},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := NewLoanForCreate(tt.args.principal, tt.args.interestRatePeriod, tt.args.periodNumbers, tt.args.startDate, config.DefaultGraceDays, tt.args.clientID)
+			if err != nil {
+				t.Errorf("NewLoanForCreate() error = %v", err)
+				return
+			}
+			got.LiquidateLoan(*tt.args.liquidationDate)
+			for _, periodExpected := range tt.want {
+				gotPeriod := got.periods[periodExpected.periodNumber-1]
+				if gotPeriod.PeriodNumber != periodExpected.periodNumber {
+					t.Errorf("PeriodNumber = %v, want %v", gotPeriod.PeriodNumber, periodExpected.periodNumber)
+				}
+				if gotPeriod.DaysInArrearsSinceLastPayment != periodExpected.daysInArrearsSinceLastPayment {
+					t.Errorf("DaysInArrearsSinceLastPayment = %v, want %v", gotPeriod.DaysInArrearsSinceLastPayment, periodExpected.daysInArrearsSinceLastPayment)
+				}
+				if !gotPeriod.DebtForArrearsSinceLastPayment.Equal(periodExpected.debtForArrearsSinceLastPayment) {
+					t.Errorf("DebtForArrearsSinceLastPayment = %v, want %v", gotPeriod.DebtForArrearsSinceLastPayment, periodExpected.debtForArrearsSinceLastPayment)
+				}
+				if gotPeriod.TotalDaysInArrears != periodExpected.daysInArrearsSinceLastPayment {
+					t.Errorf("TotalDaysInArrears = %v, want %v", gotPeriod.TotalDaysInArrears, periodExpected.daysInArrearsSinceLastPayment)
+				}
+				if !gotPeriod.TotalDebtForArrears.Equal(periodExpected.debtForArrearsSinceLastPayment) {
+					t.Errorf("TotalDebtForArrears = %v, want %v", gotPeriod.TotalDebtForArrears, periodExpected.debtForArrearsSinceLastPayment)
+				}
+				if !gotPeriod.TotalDebt.Equal(periodExpected.totalDebt) {
+					t.Errorf("TotalDebt = %v, want %v", gotPeriod.TotalDebt, periodExpected.totalDebt)
+				}
+			}
+		})
+	}
+}
 
 func toDecimal(number float64) decimal.Decimal {
 	return decimal.NewFromFloat(number)
