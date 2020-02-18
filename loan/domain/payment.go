@@ -6,6 +6,11 @@ import (
 	"github.com/shopspring/decimal"
 )
 
+const (
+	ExtraToPrincipal   = "ExtraToPrincipal"
+	ExtraToNextPeriods = "ExtraToNextPeriods"
+)
+
 type Payment struct {
 	ID            uint            `gorm:"primary_key" json:"id"`
 	CreatedAt     time.Time       `json:"-"`
@@ -14,4 +19,5 @@ type Payment struct {
 	LoanID        uint            `gorm:"not null" json:"loanID" validate:"required"`
 	PaymentAmount decimal.Decimal `gorm:"not null; type:numeric" json:"paymentAmount"`
 	PaymentDate   time.Time       `json:"paymentDate"`
+	PaymentType   string          `json:"paymentType"`
 }

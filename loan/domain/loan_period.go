@@ -1,19 +1,21 @@
 package domain
 
 import (
+	"time"
+
 	"github.com/harold2111/loans/shared/config"
 	"github.com/harold2111/loans/shared/utils"
 	"github.com/harold2111/loans/shared/utils/financial"
-	"time"
 
 	"github.com/shopspring/decimal"
 )
 
 const (
-	LoanPeriodStateOpen      = "OPEN"
-	LoanPeriodStateDue       = "DUE"
-	LoanPeriodStatePaid      = "PAID"
-	LoanPeriodStateAnnuelled = "ANNULLED"
+	LoanPeriodStateOpen               = "OPEN"
+	LoanPeriodStateDue                = "DUE"
+	LoanPeriodStatePaid               = "PAID"
+	LoanPeriodStateAnnuelled          = "ANNULLED"
+	daysBeforeEndDateToConsiderateDue = -10 //TODO: sholdBeConfigurable
 )
 
 type LoanPeriod struct {
@@ -49,15 +51,12 @@ type LoanPeriod struct {
 }
 
 func (period *LoanPeriod) LiquidateByDate(liquidationDate time.Time, graceDays uint) {
+	if period.isExpiredPeriod(liquidationDate) {
+		period.State = LoanPeriodStateDue
+	}
 	liquidationDatePlusGraceDays := liquidationDate.AddDate(0, 0, int(graceDays))
-	if period.isLiquidableState() && liquidationDatePlusGraceDays.After(period.LastPaymentDate) {
-		daysInArrearsSinceLastPayment := calculateDaysLate(period.LastPaymentDate, liquidationDate)
-		debtForArrearsSinceLastPayment := financial.FeeLateWithPeriodInterest(period.InterestRate, period.TotalDebtOfPayment, daysInArrearsSinceLastPayment)
-		period.DaysInArrearsSinceLastPayment = daysInArrearsSinceLastPayment
-		period.DebtForArrearsSinceLastPayment = debtForArrearsSinceLastPayment.RoundBank(config.Round)
-		period.TotalDaysInArrears = period.TotalDaysInArrears + daysInArrearsSinceLastPayment
-		period.TotalDebtForArrears = period.TotalDebtForArrears.Add(debtForArrearsSinceLastPayment).RoundBank(config.Round)
-		period.TotalDebt = period.TotalDebtOfPayment.Add(period.TotalDebtForArrears).RoundBank(config.Round)
+	if period.hasToCalculateDebtForArrears(liquidationDatePlusGraceDays) {
+		period.calculteDebtForArrear(liquidationDate)
 	}
 }
 
@@ -65,12 +64,10 @@ func (period *LoanPeriod) ApplyPayment(paymentID uint, payment decimal.Decimal) 
 	var periodMovement LoanPeriodMovement
 	periodMovement.fillInitialMovementFromPeriod(*period)
 	periodMovement.PaymentID = paymentID
-	periodMovement.Paid = payment
 
 	remainingPayment := payment
 	remainingPayment = period.applyPaymentToDebtForArrears(&periodMovement, remainingPayment)
 	remainingPayment = period.applyPaymentToDebtOfPayments(&periodMovement, remainingPayment)
-	remainingPayment = period.applyPaymentToExtraPrincipal(&periodMovement, remainingPayment)
 
 	period.TotalDebt = period.TotalDebtForArrears.Add(period.TotalDebtOfPayment).RoundBank(config.Round)
 	period.TotalPaid = period.TotalPaid.Add(payment)
@@ -80,6 +77,28 @@ func (period *LoanPeriod) ApplyPayment(paymentID uint, payment decimal.Decimal) 
 	periodMovement.fillFinalMovementFromPeriod(*period)
 	period.Movements = append(period.Movements, periodMovement)
 	return remainingPayment
+}
+
+func (period *LoanPeriod) ApplyPaymentToPrincipal(paymentID uint, payment decimal.Decimal) decimal.Decimal {
+	remainingPayment := payment
+	if remainingPayment.LessThanOrEqual(decimal.Zero) {
+		return remainingPayment
+	}
+	var periodMovement LoanPeriodMovement
+	periodMovement.fillInitialMovementFromPeriod(*period)
+	periodMovement.PaymentID = paymentID
+	var paymentToExtraPrincipal decimal.Decimal
+	if remainingPayment.GreaterThanOrEqual(period.FinalPrincipal) {
+		paymentToExtraPrincipal = period.FinalPrincipal
+	} else {
+		paymentToExtraPrincipal = remainingPayment
+	}
+	periodMovement.PaidExtraToPrincipal = paymentToExtraPrincipal
+	period.FinalPrincipal = period.FinalPrincipal.Sub(paymentToExtraPrincipal).RoundBank(config.Round)
+	period.TotalPaidExtraToPrincipal = period.TotalPaidExtraToPrincipal.Add(paymentToExtraPrincipal).RoundBank(config.Round)
+	periodMovement.fillFinalMovementFromPeriod(*period)
+	period.Movements = append(period.Movements, periodMovement)
+	return remainingPayment.Sub(paymentToExtraPrincipal).RoundBank(config.Round)
 }
 
 func (period *LoanPeriod) applyPaymentToDebtForArrears(periodMovement *LoanPeriodMovement, payment decimal.Decimal) decimal.Decimal {
@@ -116,30 +135,31 @@ func (period *LoanPeriod) applyPaymentToDebtOfPayments(periodMovement *LoanPerio
 	return remainingPayment.Sub(paymentToRegularDebt).RoundBank(config.Round)
 }
 
-func (period *LoanPeriod) applyPaymentToExtraPrincipal(periodMovement *LoanPeriodMovement, payment decimal.Decimal) decimal.Decimal {
-	remainingPayment := payment
-	if remainingPayment.LessThanOrEqual(decimal.Zero) {
-		return remainingPayment
-	}
-	paymentToExtraPrincipal := remainingPayment
-	periodMovement.PaidExtraToPrincipal = paymentToExtraPrincipal
-	period.TotalPaidExtraToPrincipal = period.TotalPaidExtraToPrincipal.Add(paymentToExtraPrincipal).RoundBank(config.Round)
-	return remainingPayment.Sub(paymentToExtraPrincipal).RoundBank(config.Round)
+func (period *LoanPeriod) isExpiredPeriod(liquidationDate time.Time) bool {
+	endate := period.EndDate.AddDate(0, 0, daysBeforeEndDateToConsiderateDue)
+	return period.State == LoanPeriodStateOpen && (endate.Before(liquidationDate) || endate.Equal(liquidationDate))
 }
 
-func calculateDaysLate(lastLiquidationDate, liquidationDate time.Time) int {
+func (period *LoanPeriod) hasToCalculateDebtForArrears(liquidationDatePlusGraceDays time.Time) bool {
+	return period.State == LoanPeriodStateDue && liquidationDatePlusGraceDays.After(period.EndDate)
+}
+
+func (period *LoanPeriod) calculteDebtForArrear(liquidationDate time.Time) {
+	daysInArrearsSinceLastPayment := calculateDaysLate(period.LastPaymentDate, liquidationDate)
+	if daysInArrearsSinceLastPayment > 0 {
+		debtForArrearsSinceLastPayment := financial.FeeLateWithPeriodInterest(period.InterestRate, period.TotalDebtOfPayment, daysInArrearsSinceLastPayment)
+		period.DaysInArrearsSinceLastPayment = daysInArrearsSinceLastPayment
+		period.DebtForArrearsSinceLastPayment = debtForArrearsSinceLastPayment.RoundBank(config.Round)
+		period.TotalDaysInArrears = period.TotalDaysInArrears + daysInArrearsSinceLastPayment
+		period.TotalDebtForArrears = period.TotalDebtForArrears.Add(debtForArrearsSinceLastPayment).RoundBank(config.Round)
+		period.TotalDebt = period.TotalDebtOfPayment.Add(period.TotalDebtForArrears).RoundBank(config.Round)
+	}
+}
+
+func calculateDaysLate(lastPaymentDate, liquidationDate time.Time) int {
 	daysLate := 0
-	if liquidationDate.After(lastLiquidationDate) {
-		daysLate = utils.DaysBetween(lastLiquidationDate, liquidationDate)
+	if liquidationDate.After(lastPaymentDate) {
+		daysLate = utils.DaysBetween(lastPaymentDate, liquidationDate)
 	}
 	return daysLate
-}
-
-func (period *LoanPeriod) isLiquidableState() bool {
-	switch period.State {
-	case LoanPeriodStateOpen, LoanPeriodStateDue:
-		return true
-	default:
-		return false
-	}
 }

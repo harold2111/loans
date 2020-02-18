@@ -1,6 +1,7 @@
 package domain
 
 import (
+	"sort"
 	"time"
 
 	"github.com/harold2111/loans/shared/config"
@@ -62,16 +63,38 @@ func NewLoanForCreate(
 }
 
 func (l *Loan) LiquidateLoan(liquidationDate time.Time) {
-	for index := 0; index < len(l.periods); index++ {
-		l.periods[index].LiquidateByDate(liquidationDate, l.GraceDays)
+	for periodIndex := 0; periodIndex < len(l.periods); periodIndex++ {
+		l.periods[periodIndex].LiquidateByDate(liquidationDate, l.GraceDays)
 	}
 }
 
-func (l *Loan) ApplyPayment(payment Payment) {
+func (l *Loan) ApplyPayment(payment Payment) decimal.Decimal {
+	periods := l.periods
+	numPeriods := len(periods)
+	l.LiquidateLoan(payment.PaymentDate)
+	sort.Slice(periods, func(p, q int) bool { return periods[p].PeriodNumber < periods[q].PeriodNumber })
 	remainingPayment := payment.PaymentAmount
-	for index := 0; index < len(l.periods); index++ {
-		remainingPayment = l.periods[index].ApplyPayment(payment.ID, remainingPayment)
+	//REGULAR PAYMENT
+	if remainingPayment.GreaterThan(decimal.Zero) {
+		for periodIndex := 0; periodIndex < numPeriods; periodIndex++ {
+			period := &periods[periodIndex]
+			if period.State == LoanPeriodStateDue ||
+				(period.State == LoanPeriodStateOpen && payment.PaymentType == ExtraToNextPeriods) {
+				remainingPayment = period.ApplyPayment(payment.ID, remainingPayment)
+			}
+		}
 	}
+	//EXTRA PRINCIPAL PAYMENT
+	firstOpenPeriod := l.findFirstOpenPeriod()
+	if remainingPayment.GreaterThan(decimal.Zero) && firstOpenPeriod != nil && payment.PaymentType == ExtraToPrincipal {
+		remainingPayment = firstOpenPeriod.ApplyPayment(payment.ID, remainingPayment)
+		if remainingPayment.GreaterThanOrEqual(decimal.Zero) {
+			remainingPayment = firstOpenPeriod.ApplyPaymentToPrincipal(payment.ID, remainingPayment)
+			l.recalculatePeriodsForExtraPrincipalPayment(*firstOpenPeriod)
+		}
+	}
+	l.roundDecimalValues()
+	return remainingPayment
 }
 
 func (l *Loan) validateForCreation() error {
@@ -127,6 +150,47 @@ func (l *Loan) calculatePeriods() {
 
 	}
 	l.periods = periods
+}
+
+func (l *Loan) recalculatePeriodsForExtraPrincipalPayment(periodWithExtraPrincialPayment LoanPeriod) {
+	periods := l.periods
+	numPeriods := len(periods)
+	recalculatedPeriodIndex := int(periodWithExtraPrincialPayment.PeriodNumber)
+	beforePeriodIndex := recalculatedPeriodIndex - 1
+	anullateRestOfPeriods := false
+	for recalculatedPeriodIndex < numPeriods {
+		beforePeriod := &periods[beforePeriodIndex]
+		recalculatedPeriod := &periods[recalculatedPeriodIndex]
+		if beforePeriod.FinalPrincipal.LessThanOrEqual(decimal.Zero) && !anullateRestOfPeriods {
+			anullateRestOfPeriods = true
+		}
+		if anullateRestOfPeriods {
+			recalculatedPeriod.State = LoanPeriodStateAnnuelled
+		} else {
+			recalculatedPeriod.InitialPrincipal = beforePeriod.FinalPrincipal
+			recalculatedPeriod.InterestOfPayment = recalculatedPeriod.InitialPrincipal.Mul(recalculatedPeriod.InterestRate)
+			recalculatedPeriodTotalPayment := recalculatedPeriod.InitialPrincipal.Add(recalculatedPeriod.InterestOfPayment)
+			if recalculatedPeriodTotalPayment.LessThanOrEqual(recalculatedPeriod.Payment) {
+				recalculatedPeriod.Payment = recalculatedPeriodTotalPayment
+			}
+			recalculatedPeriod.PrincipalOfPayment = recalculatedPeriod.Payment.Sub(recalculatedPeriod.InterestOfPayment)
+			recalculatedPeriod.FinalPrincipal = recalculatedPeriod.InitialPrincipal.Sub(recalculatedPeriod.PrincipalOfPayment)
+		}
+		beforePeriodIndex++
+		recalculatedPeriodIndex++
+	}
+}
+
+func (l *Loan) findFirstOpenPeriod() *LoanPeriod {
+	numPeriods := len(l.periods)
+	periods := l.periods
+	for index := 0; index < numPeriods; index++ {
+		period := &periods[index]
+		if period.State == LoanPeriodStateOpen {
+			return period
+		}
+	}
+	return nil
 }
 
 func (l *Loan) roundDecimalValues() {

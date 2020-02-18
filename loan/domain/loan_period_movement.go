@@ -19,7 +19,6 @@ type LoanPeriodMovement struct {
 	InitialDebtOfPayment  decimal.Decimal `gorm:"type:numeric"`
 	InitialDebt           decimal.Decimal `gorm:"type:numeric"`
 
-	Paid                               decimal.Decimal `gorm:"type:numeric"`
 	DaysInArrearsSinceLastLiquidation  int
 	DebtForArrearsSinceLastLiquidation decimal.Decimal `gorm:"type:numeric"`
 	PaidToDebtForArrears               decimal.Decimal `gorm:"type:numeric"`
