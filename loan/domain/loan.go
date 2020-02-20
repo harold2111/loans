@@ -12,10 +12,14 @@ import (
 )
 
 const (
+	//LoanStateActive represents a active loan.
 	LoanStateActive = "ACTIVE"
+
+	//LoanStateClosed represents a active closed.
 	LoanStateClosed = "CLOSED"
 )
 
+//Loan represents a loan.
 type Loan struct {
 	ID                 uint `gorm:"primary_key"`
 	CreatedAt          time.Time
@@ -30,16 +34,15 @@ type Loan struct {
 	CloseDate          *time.Time
 	State              string
 	periods            []LoanPeriod
-	GraceDays          uint
 	ClientID           uint `gorm:"not null"`
 }
 
+// NewLoanForCreate create a new Loan.
 func NewLoanForCreate(
 	principal decimal.Decimal,
 	interestRatePeriod decimal.Decimal,
 	periodNumbers uint,
 	startDate time.Time,
-	graceDays uint,
 	clientID uint) (Loan, error) {
 
 	loan := Loan{
@@ -47,7 +50,6 @@ func NewLoanForCreate(
 		InterestRatePeriod: interestRatePeriod,
 		PeriodNumbers:      periodNumbers,
 		StartDate:          startDate,
-		GraceDays:          graceDays,
 		ClientID:           clientID,
 	}
 	if error := loan.validateForCreation(); error != nil {
@@ -62,38 +64,52 @@ func NewLoanForCreate(
 	return loan, nil
 }
 
+// LiquidateLoan liquidate the loan periods for a specific date.
 func (l *Loan) LiquidateLoan(liquidationDate time.Time) {
 	for periodIndex := 0; periodIndex < len(l.periods); periodIndex++ {
-		l.periods[periodIndex].LiquidateByDate(liquidationDate, l.GraceDays)
+		l.periods[periodIndex].liquidateByDate(liquidationDate)
 	}
 }
 
-func (l *Loan) ApplyPayment(payment Payment) decimal.Decimal {
+// ApplyPayment apply a payment to loan periods.
+func (l *Loan) ApplyPayment(payment Payment) Payment {
+	remainingPayment := payment
 	periods := l.periods
-	numPeriods := len(periods)
 	l.LiquidateLoan(payment.PaymentDate)
 	sort.Slice(periods, func(p, q int) bool { return periods[p].PeriodNumber < periods[q].PeriodNumber })
-	remainingPayment := payment.PaymentAmount
-	//REGULAR PAYMENT
-	if remainingPayment.GreaterThan(decimal.Zero) {
-		for periodIndex := 0; periodIndex < numPeriods; periodIndex++ {
-			period := &periods[periodIndex]
-			if period.State == LoanPeriodStateDue ||
-				(period.State == LoanPeriodStateOpen && payment.PaymentType == ExtraToNextPeriods) {
-				remainingPayment = period.ApplyPayment(payment.ID, remainingPayment)
-			}
+	remainingPayment = l.applyRegularPayments(payment)
+	remainingPayment = l.applyExtraToPrincipalPayments(payment)
+	l.roundDecimalValues()
+	return remainingPayment
+}
+
+func (l *Loan) applyRegularPayments(payment Payment) Payment {
+	if payment.PaymentAmount.LessThanOrEqual(decimal.Zero) {
+		return payment
+	}
+	remainingPayment := payment
+	periods := l.periods
+	numPeriods := len(periods)
+	for periodIndex := 0; periodIndex < numPeriods; periodIndex++ {
+		period := &periods[periodIndex]
+		if period.State == LoanPeriodStateDue ||
+			(period.State == LoanPeriodStateOpen && payment.PaymentType == ExtraToNextPeriods) {
+			remainingPayment = period.applyRegularPayment(remainingPayment)
 		}
 	}
-	//EXTRA PRINCIPAL PAYMENT
+	return remainingPayment
+}
+
+func (l *Loan) applyExtraToPrincipalPayments(payment Payment) Payment {
+	remainingPayment := payment
 	firstOpenPeriod := l.findFirstOpenPeriod()
-	if remainingPayment.GreaterThan(decimal.Zero) && firstOpenPeriod != nil && payment.PaymentType == ExtraToPrincipal {
-		remainingPayment = firstOpenPeriod.ApplyPayment(payment.ID, remainingPayment)
-		if remainingPayment.GreaterThanOrEqual(decimal.Zero) {
-			remainingPayment = firstOpenPeriod.ApplyPaymentToPrincipal(payment.ID, remainingPayment)
+	if remainingPayment.PaymentAmount.GreaterThan(decimal.Zero) && firstOpenPeriod != nil && payment.PaymentType == ExtraToPrincipal {
+		remainingPayment = firstOpenPeriod.applyRegularPayment(remainingPayment)
+		if remainingPayment.PaymentAmount.GreaterThanOrEqual(decimal.Zero) {
+			remainingPayment = firstOpenPeriod.applyPaymentToPrincipal(remainingPayment)
 			l.recalculatePeriodsForExtraPrincipalPayment(*firstOpenPeriod)
 		}
 	}
-	l.roundDecimalValues()
 	return remainingPayment
 }
 
@@ -123,7 +139,7 @@ func (l *Loan) calculateCloseDateAgreed() {
 func (l *Loan) calculatePeriods() {
 	amortizations := financial.Amortizations(l.Principal, l.InterestRatePeriod, int(l.PeriodNumbers))
 	periods := make([]LoanPeriod, len(amortizations))
-	for index, amoritzation := range amortizations {
+	for index, amortization := range amortizations {
 		var startDate time.Time
 		var endDate time.Time
 		periodNumber := index + 1
@@ -138,34 +154,34 @@ func (l *Loan) calculatePeriods() {
 		periods[index].StartDate = startDate
 		periods[index].EndDate = endDate
 		periods[index].PaymentDate = endDate
-		periods[index].InitialPrincipal = amoritzation.InitialPrincipal
-		periods[index].Payment = amoritzation.Payment
-		periods[index].InterestRate = amoritzation.InterestRatePeriod
-		periods[index].PrincipalOfPayment = amoritzation.ToPrincipal
-		periods[index].InterestOfPayment = amoritzation.ToInterest
-		periods[index].FinalPrincipal = amoritzation.FinalPrincipal
+		periods[index].InitialPrincipal = amortization.InitialPrincipal
+		periods[index].Payment = amortization.Payment
+		periods[index].InterestRate = amortization.InterestRatePeriod
+		periods[index].PrincipalOfPayment = amortization.ToPrincipal
+		periods[index].InterestOfPayment = amortization.ToInterest
+		periods[index].FinalPrincipal = amortization.FinalPrincipal
 		periods[index].LastPaymentDate = endDate
-		periods[index].TotalDebtOfPayment = amoritzation.Payment
-		periods[index].TotalDebt = amoritzation.Payment
+		periods[index].TotalDebtOfPayment = amortization.Payment
+		periods[index].TotalDebt = amortization.Payment
 
 	}
 	l.periods = periods
 }
 
-func (l *Loan) recalculatePeriodsForExtraPrincipalPayment(periodWithExtraPrincialPayment LoanPeriod) {
+func (l *Loan) recalculatePeriodsForExtraPrincipalPayment(periodWithExtraPrincipalPayment LoanPeriod) {
 	periods := l.periods
 	numPeriods := len(periods)
-	recalculatedPeriodIndex := int(periodWithExtraPrincialPayment.PeriodNumber)
+	recalculatedPeriodIndex := int(periodWithExtraPrincipalPayment.PeriodNumber)
 	beforePeriodIndex := recalculatedPeriodIndex - 1
-	anullateRestOfPeriods := false
+	annulateRestOfPeriods := false
 	for recalculatedPeriodIndex < numPeriods {
 		beforePeriod := &periods[beforePeriodIndex]
 		recalculatedPeriod := &periods[recalculatedPeriodIndex]
-		if beforePeriod.FinalPrincipal.LessThanOrEqual(decimal.Zero) && !anullateRestOfPeriods {
-			anullateRestOfPeriods = true
+		if beforePeriod.FinalPrincipal.LessThanOrEqual(decimal.Zero) && !annulateRestOfPeriods {
+			annulateRestOfPeriods = true
 		}
-		if anullateRestOfPeriods {
-			recalculatedPeriod.State = LoanPeriodStateAnnuelled
+		if annulateRestOfPeriods {
+			recalculatedPeriod.State = LoanPeriodStateAnnulled
 		} else {
 			recalculatedPeriod.InitialPrincipal = beforePeriod.FinalPrincipal
 			recalculatedPeriod.InterestOfPayment = recalculatedPeriod.InitialPrincipal.Mul(recalculatedPeriod.InterestRate)
@@ -196,13 +212,13 @@ func (l *Loan) findFirstOpenPeriod() *LoanPeriod {
 func (l *Loan) roundDecimalValues() {
 	l.PaymentAgreed = l.PaymentAgreed.RoundBank(config.Round)
 	periods := l.periods
-	for index, amoritzation := range periods {
+	for index, amortization := range periods {
 		periods[index].InitialPrincipal = periods[index].InitialPrincipal.RoundBank(config.Round)
 		periods[index].Payment = periods[index].Payment.RoundBank(config.Round)
 		periods[index].InterestRate = periods[index].InterestRate.RoundBank(config.Round)
 		periods[index].PrincipalOfPayment = periods[index].PrincipalOfPayment.RoundBank(config.Round)
 		periods[index].InterestOfPayment = periods[index].InterestOfPayment.RoundBank(config.Round)
-		periods[index].FinalPrincipal = amoritzation.FinalPrincipal.RoundBank(config.Round)
+		periods[index].FinalPrincipal = amortization.FinalPrincipal.RoundBank(config.Round)
 		periods[index].TotalDebtOfPayment = periods[index].TotalDebtOfPayment.RoundBank(config.Round)
 		periods[index].TotalDebt = periods[index].TotalDebt.RoundBank(config.Round)
 

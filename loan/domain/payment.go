@@ -7,10 +7,15 @@ import (
 )
 
 const (
-	ExtraToPrincipal   = "ExtraToPrincipal"
+
+	//ExtraToPrincipal if the payment has extra amount should be applied to the principal.
+	ExtraToPrincipal = "ExtraToPrincipal"
+
+	//ExtraToNextPeriods if the payment has extra amount should be applied to the next periods.
 	ExtraToNextPeriods = "ExtraToNextPeriods"
 )
 
+//Payment represents a loan payment
 type Payment struct {
 	ID            uint            `gorm:"primary_key" json:"id"`
 	CreatedAt     time.Time       `json:"-"`

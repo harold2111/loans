@@ -3,8 +3,9 @@ package config
 import "time"
 
 const (
-	Round            int32 = 4
-	DefaultGraceDays uint  = 10
+	Round                                  = 4
+	DaysBeforeEndDateToConsiderateDue      = -15
+	DaysAfterEndDateToConsiderateInArrears = 5
 )
 
 func DefaultLocation() *time.Location {

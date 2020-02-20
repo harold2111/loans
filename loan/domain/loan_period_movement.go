@@ -6,12 +6,13 @@ import (
 	"github.com/shopspring/decimal"
 )
 
+// LoanPeriodMovement represent the movements of a period by payments.
 type LoanPeriodMovement struct {
 	ID              uint `gorm:"primary_key"`
 	CreatedAt       time.Time
 	UpdatedAt       time.Time
 	DeletedAt       *time.Time `sql:"index" `
-	LoandPeriodID   uint
+	LoanPeriodID    uint
 	PaymentID       uint
 	LiquidationDate time.Time
 
@@ -31,7 +32,7 @@ type LoanPeriodMovement struct {
 }
 
 func (loanPeriodMovement *LoanPeriodMovement) fillInitialMovementFromPeriod(period LoanPeriod) {
-	loanPeriodMovement.LoandPeriodID = period.ID
+	loanPeriodMovement.LoanPeriodID = period.ID
 	loanPeriodMovement.LiquidationDate = period.LastPaymentDate
 	loanPeriodMovement.DaysInArrearsSinceLastLiquidation = period.DaysInArrearsSinceLastPayment
 	loanPeriodMovement.DebtForArrearsSinceLastLiquidation = period.DebtForArrearsSinceLastPayment

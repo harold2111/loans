@@ -4,7 +4,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/harold2111/loans/shared/config"
 	"github.com/harold2111/loans/shared/utils"
 	"github.com/shopspring/decimal"
 )
@@ -15,10 +14,9 @@ type createLoanArgs struct {
 	periodNumbers      uint
 	startDate          time.Time
 	clientID           uint
-	liquidationDate    *time.Time
 }
 
-func TestNewLoanForCreate(t *testing.T) {
+func TestLoan_CreateLoan(t *testing.T) {
 	type expected struct {
 		paymentAgreed   decimal.Decimal
 		closeDateAgreed time.Time
@@ -29,19 +27,19 @@ func TestNewLoanForCreate(t *testing.T) {
 		want expected
 	}{
 		{
-			"CreateLoanTest-1",
-			createLoanArgs{toDecimal(450000.0), toDecimal(0.05), 36, toDate(2019, 12, 16), 1, nil},
+			"TestLoan_CreateLoan-1",
+			createLoanArgs{toDecimal(450000.0), toDecimal(0.05), 36, toDate(2019, 12, 16), 1},
 			expected{toDecimal(27195.5057), toDate(2022, 12, 16)},
 		},
 		{
-			"CreateLoanTest-2",
-			createLoanArgs{toDecimal(1000.0), toDecimal(0.01), 12, toDate(2019, 12, 16), 1, nil},
+			"TestLoan_CreateLoan-2",
+			createLoanArgs{toDecimal(1000.0), toDecimal(0.01), 12, toDate(2019, 12, 16), 1},
 			expected{toDecimal(88.8488), toDate(2020, 12, 16)},
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := NewLoanForCreate(tt.args.principal, tt.args.interestRatePeriod, tt.args.periodNumbers, tt.args.startDate, config.DefaultGraceDays, tt.args.clientID)
+			got, err := NewLoanForCreate(tt.args.principal, tt.args.interestRatePeriod, tt.args.periodNumbers, tt.args.startDate, tt.args.clientID)
 			if err != nil {
 				t.Errorf("NewLoanForCreate() error = %v", err)
 				return
@@ -82,7 +80,7 @@ func TestNewLoanForCreate(t *testing.T) {
 	}
 }
 
-func TestNewLoanForCreate_periods(t *testing.T) {
+func TestLoan_CreatePeriods(t *testing.T) {
 	type periodExpected struct {
 		periodNumber       uint
 		startDate          time.Time
@@ -98,8 +96,8 @@ func TestNewLoanForCreate_periods(t *testing.T) {
 		want []periodExpected
 	}{
 		{
-			"TestNewLoanForCreate_periods-1",
-			createLoanArgs{toDecimal(3500000), toDecimal(0.02), 5, toDate(2019, 1, 31), 1, nil},
+			"TestLoan_CreatePeriods-1",
+			createLoanArgs{toDecimal(3500000), toDecimal(0.02), 5, toDate(2019, 1, 31), 1},
 			[]periodExpected{
 				{1, toDate(2019, 1, 31), toDate(2019, 2, 27), toDecimal(3500000), toDecimal(672554.3794), toDecimal(70000), toDecimal(2827445.6206)},
 				{2, toDate(2019, 2, 28), toDate(2019, 3, 30), toDecimal(2827445.6206), toDecimal(686005.4670), toDecimal(56548.9124), toDecimal(2141440.1537)},
@@ -109,8 +107,8 @@ func TestNewLoanForCreate_periods(t *testing.T) {
 			},
 		},
 		{
-			"TestNewLoanForCreate_periods-2",
-			createLoanArgs{toDecimal(100000), toDecimal(0.035), 5, toDate(2019, 1, 1), 1, nil},
+			"TestLoan_CreatePeriods-2",
+			createLoanArgs{toDecimal(100000), toDecimal(0.035), 5, toDate(2019, 1, 1), 1},
 			[]periodExpected{
 				{1, toDate(2019, 1, 1), toDate(2019, 1, 31), toDecimal(100000), toDecimal(18648.1373), toDecimal(3500), toDecimal(81351.8627)},
 				{2, toDate(2019, 2, 1), toDate(2019, 2, 28), toDecimal(81351.8627), toDecimal(19300.8221), toDecimal(2847.3152), toDecimal(62051.0406)},
@@ -122,7 +120,7 @@ func TestNewLoanForCreate_periods(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := NewLoanForCreate(tt.args.principal, tt.args.interestRatePeriod, tt.args.periodNumbers, tt.args.startDate, config.DefaultGraceDays, tt.args.clientID)
+			got, err := NewLoanForCreate(tt.args.principal, tt.args.interestRatePeriod, tt.args.periodNumbers, tt.args.startDate, tt.args.clientID)
 			if err != nil {
 				t.Errorf("NewLoanForCreate() error = %v", err)
 				return
@@ -165,7 +163,7 @@ func TestNewLoanForCreate_periods(t *testing.T) {
 				if !gotPeriod.FinalPrincipal.Equal(periodExpected.finalPrincipal) {
 					t.Errorf("FinalPrincipal = %v, want %v", gotPeriod.FinalPrincipal, periodExpected.finalPrincipal)
 				}
-				//Modifible fields
+				//Modifiable fields
 				if !gotPeriod.LastPaymentDate.Equal(periodExpected.endDate) {
 					t.Errorf("LastPaymentDate = %v, want %v", gotPeriod.LastPaymentDate, periodExpected.endDate)
 				}
@@ -217,8 +215,8 @@ func TestLoan_LiquidatePeriods(t *testing.T) {
 		args createLoanArgs
 		want []liquidationExpected
 	}{{
-		"TestNewLoanForCreate_LiquidatePeriods-1",
-		createLoanArgs{toDecimal(100000), toDecimal(0.035), 5, toDate(2019, 1, 1), 1, &liqDate},
+		"TestLoan_LiquidatePeriods-1",
+		createLoanArgs{toDecimal(100000), toDecimal(0.035), 5, toDate(2019, 1, 1), 1},
 		[]liquidationExpected{
 			{1, 58, toDecimal(1498.6906), toDecimal(23646.8279)},
 			{2, 30, toDecimal(775.1848), toDecimal(22923.3221)},
@@ -230,12 +228,12 @@ func TestLoan_LiquidatePeriods(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := NewLoanForCreate(tt.args.principal, tt.args.interestRatePeriod, tt.args.periodNumbers, tt.args.startDate, config.DefaultGraceDays, tt.args.clientID)
+			got, err := NewLoanForCreate(tt.args.principal, tt.args.interestRatePeriod, tt.args.periodNumbers, tt.args.startDate, tt.args.clientID)
 			if err != nil {
 				t.Errorf("NewLoanForCreate() error = %v", err)
 				return
 			}
-			got.LiquidateLoan(*tt.args.liquidationDate)
+			got.LiquidateLoan(liqDate)
 			for _, periodExpected := range tt.want {
 				gotPeriod := got.periods[periodExpected.periodNumber-1]
 				if gotPeriod.PeriodNumber != periodExpected.periodNumber {
@@ -268,34 +266,35 @@ func TestLoan_payLoanOnlyRegular(t *testing.T) {
 		debtForArrearsSinceLastPayment decimal.Decimal
 		totaldebtForArrears            decimal.Decimal
 		totalDebt                      decimal.Decimal
+		state                          string
 	}
-	liqDate := toDate(2019, 3, 30)
+	paymentDate := toDate(2019, 3, 30)
 	tests := []struct {
 		name string
 		args createLoanArgs
 		want []liquidationExpected
 	}{{
 		"TestLoan_payLoanOnlyRegular",
-		createLoanArgs{toDecimal(100000), toDecimal(0.035), 5, toDate(2019, 1, 1), 1, &liqDate},
+		createLoanArgs{toDecimal(100000), toDecimal(0.035), 5, toDate(2019, 1, 1), 1},
 		[]liquidationExpected{
-			{1, 58, toDecimal(1498.6906), decimal.Zero, decimal.Zero},
-			{2, 30, toDecimal(775.1848), decimal.Zero, decimal.Zero},
-			{3, 0, decimal.Zero, decimal.Zero, toDecimal(19976.3508)},
-			{4, 0, decimal.Zero, decimal.Zero, toDecimal(22148.1373)},
-			{5, 0, decimal.Zero, decimal.Zero, toDecimal(22148.1373)},
+			{1, 58, toDecimal(1498.6906), decimal.Zero, decimal.Zero, LoanPeriodStatePaid},
+			{2, 30, toDecimal(775.1848), decimal.Zero, decimal.Zero, LoanPeriodStatePaid},
+			{3, 0, decimal.Zero, decimal.Zero, toDecimal(19976.3508), LoanPeriodStateDue},
+			{4, 0, decimal.Zero, decimal.Zero, toDecimal(22148.1373), LoanPeriodStateOpen},
+			{5, 0, decimal.Zero, decimal.Zero, toDecimal(22148.1373), LoanPeriodStateOpen},
 		},
 	},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := NewLoanForCreate(tt.args.principal, tt.args.interestRatePeriod, tt.args.periodNumbers, tt.args.startDate, config.DefaultGraceDays, tt.args.clientID)
+			got, err := NewLoanForCreate(tt.args.principal, tt.args.interestRatePeriod, tt.args.periodNumbers, tt.args.startDate, tt.args.clientID)
 			if err != nil {
 				t.Errorf("NewLoanForCreate() error = %v", err)
 				return
 			}
 			payment := Payment{
 				PaymentAmount: toDecimal(48741.9365),
-				PaymentDate:   liqDate,
+				PaymentDate:   paymentDate,
 				PaymentType:   ExtraToNextPeriods,
 			}
 			got.ApplyPayment(payment)
@@ -320,12 +319,15 @@ func TestLoan_payLoanOnlyRegular(t *testing.T) {
 				if !gotPeriod.TotalDebt.Equal(periodExpected.totalDebt) {
 					t.Errorf("TotalDebt = %v, want %v [%v]", gotPeriod.TotalDebt, periodExpected.totalDebt, period)
 				}
+				if gotPeriod.State != periodExpected.state {
+					t.Errorf("State = %v, want %v [%v]", gotPeriod.State, periodExpected.state, period)
+				}
 			}
 		})
 	}
 }
 
-func TestLoan_payLoanWithExraToPrincipal(t *testing.T) {
+func TestLoan_payLoanWithExraToPrincipalAnullingLastPeriod(t *testing.T) {
 	type liquidationExpected struct {
 		periodNumber                   uint
 		daysInArrearsSinceLastPayment  int
@@ -334,33 +336,33 @@ func TestLoan_payLoanWithExraToPrincipal(t *testing.T) {
 		totalDebt                      decimal.Decimal
 		state                          string
 	}
-	liqDate := toDate(2019, 3, 30)
+	paymentDate := toDate(2019, 3, 30)
 	tests := []struct {
 		name string
 		args createLoanArgs
 		want []liquidationExpected
 	}{{
-		"TestLoan_payLoanWithExraToPrincipal-1",
-		createLoanArgs{toDecimal(100000), toDecimal(0.035), 5, toDate(2019, 1, 1), 1, &liqDate},
+		"TestLoan_payLoanWithExraToPrincipalAnullingLastPeriod-1",
+		createLoanArgs{toDecimal(100000), toDecimal(0.035), 5, toDate(2019, 1, 1), 1},
 		[]liquidationExpected{
 			{1, 58, toDecimal(1498.6906), decimal.Zero, decimal.Zero, LoanPeriodStatePaid},
 			{2, 30, toDecimal(775.1848), decimal.Zero, decimal.Zero, LoanPeriodStatePaid},
 			{3, 0, decimal.Zero, decimal.Zero, decimal.Zero, LoanPeriodStatePaid},
 			{4, 0, decimal.Zero, decimal.Zero, decimal.Zero, LoanPeriodStatePaid},
-			{5, 0, decimal.Zero, decimal.Zero, toDecimal(22148.1373), LoanPeriodStateAnnuelled},
+			{5, 0, decimal.Zero, decimal.Zero, toDecimal(22148.1373), LoanPeriodStateAnnulled},
 		},
 	},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := NewLoanForCreate(tt.args.principal, tt.args.interestRatePeriod, tt.args.periodNumbers, tt.args.startDate, config.DefaultGraceDays, tt.args.clientID)
+			got, err := NewLoanForCreate(tt.args.principal, tt.args.interestRatePeriod, tt.args.periodNumbers, tt.args.startDate, tt.args.clientID)
 			if err != nil {
 				t.Errorf("NewLoanForCreate() error = %v", err)
 				return
 			}
 			payment := Payment{
 				PaymentAmount: toDecimal(132941.1144),
-				PaymentDate:   liqDate,
+				PaymentDate:   paymentDate,
 				PaymentType:   ExtraToPrincipal,
 			}
 			got.ApplyPayment(payment)
@@ -402,33 +404,33 @@ func TestLoan_payWholePrincipalOnFirstMonth(t *testing.T) {
 		totalDebt                      decimal.Decimal
 		state                          string
 	}
-	liqDate := toDate(2019, 1, 10)
+	paymentDate := toDate(2019, 1, 10)
 	tests := []struct {
 		name string
 		args createLoanArgs
 		want []liquidationExpected
 	}{{
-		"TestLoan_payLoanWithExraToPrincipalOnFirstMonth-1",
-		createLoanArgs{toDecimal(100000), toDecimal(0.035), 5, toDate(2019, 1, 1), 1, &liqDate},
+		"TestLoan_payWholePrincipalOnFirstMonth-1",
+		createLoanArgs{toDecimal(100000), toDecimal(0.035), 5, toDate(2019, 1, 1), 1},
 		[]liquidationExpected{
 			{1, 0, decimal.Zero, decimal.Zero, decimal.Zero, LoanPeriodStatePaid},
-			{2, 0, decimal.Zero, decimal.Zero, toDecimal(22148.1373), LoanPeriodStateAnnuelled},
-			{3, 0, decimal.Zero, decimal.Zero, toDecimal(22148.1373), LoanPeriodStateAnnuelled},
-			{4, 0, decimal.Zero, decimal.Zero, toDecimal(22148.1373), LoanPeriodStateAnnuelled},
-			{5, 0, decimal.Zero, decimal.Zero, toDecimal(22148.1373), LoanPeriodStateAnnuelled},
+			{2, 0, decimal.Zero, decimal.Zero, toDecimal(22148.1373), LoanPeriodStateAnnulled},
+			{3, 0, decimal.Zero, decimal.Zero, toDecimal(22148.1373), LoanPeriodStateAnnulled},
+			{4, 0, decimal.Zero, decimal.Zero, toDecimal(22148.1373), LoanPeriodStateAnnulled},
+			{5, 0, decimal.Zero, decimal.Zero, toDecimal(22148.1373), LoanPeriodStateAnnulled},
 		},
 	},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := NewLoanForCreate(tt.args.principal, tt.args.interestRatePeriod, tt.args.periodNumbers, tt.args.startDate, config.DefaultGraceDays, tt.args.clientID)
+			got, err := NewLoanForCreate(tt.args.principal, tt.args.interestRatePeriod, tt.args.periodNumbers, tt.args.startDate, tt.args.clientID)
 			if err != nil {
 				t.Errorf("NewLoanForCreate() error = %v", err)
 				return
 			}
 			payment := Payment{
 				PaymentAmount: toDecimal(103500.0),
-				PaymentDate:   liqDate,
+				PaymentDate:   paymentDate,
 				PaymentType:   ExtraToPrincipal,
 			}
 			got.ApplyPayment(payment)
@@ -461,7 +463,7 @@ func TestLoan_payWholePrincipalOnFirstMonth(t *testing.T) {
 	}
 }
 
-func TestLoan_payInitalPrincipalOnFirstMonth(t *testing.T) {
+func TestLoan_payInitialPrincipalOnFirstMonth(t *testing.T) {
 	type liquidationExpected struct {
 		periodNumber                   uint
 		daysInArrearsSinceLastPayment  int
@@ -470,33 +472,33 @@ func TestLoan_payInitalPrincipalOnFirstMonth(t *testing.T) {
 		totalDebt                      decimal.Decimal
 		state                          string
 	}
-	liqDate := toDate(2019, 1, 10)
+	paymentDate := toDate(2019, 1, 10)
 	tests := []struct {
 		name string
 		args createLoanArgs
 		want []liquidationExpected
 	}{{
-		"TestLoan_payLoanWithExraToPrincipalOnFirstMonth2-1",
-		createLoanArgs{toDecimal(100000), toDecimal(0.035), 5, toDate(2019, 1, 1), 1, &liqDate},
+		"TestLoan_payInitialPrincipalOnFirstMonth-1",
+		createLoanArgs{toDecimal(100000), toDecimal(0.035), 5, toDate(2019, 1, 1), 1},
 		[]liquidationExpected{
 			{1, 0, decimal.Zero, decimal.Zero, decimal.Zero, LoanPeriodStatePaid},
 			{2, 0, decimal.Zero, decimal.Zero, toDecimal(22148.1373), LoanPeriodStateOpen},
-			{3, 0, decimal.Zero, decimal.Zero, toDecimal(22148.1373), LoanPeriodStateAnnuelled},
-			{4, 0, decimal.Zero, decimal.Zero, toDecimal(22148.1373), LoanPeriodStateAnnuelled},
-			{5, 0, decimal.Zero, decimal.Zero, toDecimal(22148.1373), LoanPeriodStateAnnuelled},
+			{3, 0, decimal.Zero, decimal.Zero, toDecimal(22148.1373), LoanPeriodStateAnnulled},
+			{4, 0, decimal.Zero, decimal.Zero, toDecimal(22148.1373), LoanPeriodStateAnnulled},
+			{5, 0, decimal.Zero, decimal.Zero, toDecimal(22148.1373), LoanPeriodStateAnnulled},
 		},
 	},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := NewLoanForCreate(tt.args.principal, tt.args.interestRatePeriod, tt.args.periodNumbers, tt.args.startDate, config.DefaultGraceDays, tt.args.clientID)
+			got, err := NewLoanForCreate(tt.args.principal, tt.args.interestRatePeriod, tt.args.periodNumbers, tt.args.startDate, tt.args.clientID)
 			if err != nil {
 				t.Errorf("NewLoanForCreate() error = %v", err)
 				return
 			}
 			payment := Payment{
 				PaymentAmount: toDecimal(100000.0),
-				PaymentDate:   liqDate,
+				PaymentDate:   paymentDate,
 				PaymentType:   ExtraToPrincipal,
 			}
 			got.ApplyPayment(payment)

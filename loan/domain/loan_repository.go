@@ -1,6 +1,6 @@
 package domain
 
-// Repository provides access a loan store.
+// LoanRepository interface that provides access a loan store.
 type LoanRepository interface {
 	FindAll() ([]Loan, error)
 	StoreLoan(loan *Loan) error
