@@ -179,7 +179,7 @@ func (l *Loan) recalculatePeriodsForExtraPrincipalPayment(periodWithExtraPrincip
 			annulateRestOfPeriods = true
 		}
 		if annulateRestOfPeriods {
-			recalculatedPeriod.State = LoanPeriodStateAnnulled
+			recalculatedPeriod.annullate()
 		} else {
 			recalculatedPeriod.InitialPrincipal = beforePeriod.FinalPrincipal
 			recalculatedPeriod.InterestOfPayment = recalculatedPeriod.InitialPrincipal.Mul(recalculatedPeriod.InterestRate)

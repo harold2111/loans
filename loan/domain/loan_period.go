@@ -41,7 +41,7 @@ type LoanPeriod struct {
 	InterestOfPayment  decimal.Decimal `gorm:"type:numeric"`
 	FinalPrincipal     decimal.Decimal `gorm:"type:numeric"`
 	//Modifiable fields
-	PeriodPayments            []PeriodPayment
+	Payments                  []PeriodPayment
 	PeriodDefaults            []PeriodDefault
 	TotalPaidToRegularDebt    decimal.Decimal `gorm:"type:numeric"`
 	TotalPaidExtraToPrincipal decimal.Decimal `gorm:"type:numeric"`
@@ -93,7 +93,7 @@ func (period *LoanPeriod) applyPaymentToRegularDebt(paymentID int, payment decim
 		paymentToRegularDebt = totalDebtOfPayment
 	}
 	periodPayment := newPeriodPayment(period.ID, paymentID, paymentToRegularDebt, PaymentTypeRegular)
-	period.PeriodPayments = append(period.PeriodPayments, periodPayment)
+	period.Payments = append(period.Payments, periodPayment)
 	period.TotalPaidToRegularDebt = period.TotalPaidToRegularDebt.Add(paymentToRegularDebt).RoundBank(config.Round)
 	return remainingPayment.Sub(paymentToRegularDebt).RoundBank(config.Round)
 }
@@ -110,7 +110,7 @@ func (period *LoanPeriod) applyPaymentToPrincipal(paymentID int, payment Payment
 		paymentToExtraPrincipal = remainingPayment.PaymentAmount
 	}
 	periodPayment := newPeriodPayment(period.ID, paymentID, paymentToExtraPrincipal, PaymentTypePrincipal)
-	period.PeriodPayments = append(period.PeriodPayments, periodPayment)
+	period.Payments = append(period.Payments, periodPayment)
 	period.FinalPrincipal = period.FinalPrincipal.Sub(paymentToExtraPrincipal).RoundBank(config.Round)
 	period.TotalPaidExtraToPrincipal = period.TotalPaidExtraToPrincipal.Add(paymentToExtraPrincipal).RoundBank(config.Round)
 	remainingPayment.PaymentAmount = remainingPayment.PaymentAmount.Sub(paymentToExtraPrincipal).RoundBank(config.Round)
@@ -118,14 +118,17 @@ func (period *LoanPeriod) applyPaymentToPrincipal(paymentID int, payment Payment
 }
 
 func (period *LoanPeriod) calculateDebtForDefaults(liquidationDate time.Time) {
-	lastLiquidationDate := period.lastLiquidationDate()
-	daysInDefaultSinceLastLiquidation := calculateDaysLate(lastLiquidationDate, liquidationDate)
+	daysInDefaultSinceLastLiquidation := period.calculateDaysLate(liquidationDate)
 	if daysInDefaultSinceLastLiquidation > 0 {
 		daysInDefault := daysInDefaultSinceLastLiquidation
 		debtForDefault := financial.FeeLateWithPeriodInterest(period.InterestRate, period.TotalRegularDebt(), daysInDefaultSinceLastLiquidation).RoundBank(config.Round)
 		periodDefault := newPeriodDefault(period.ID, liquidationDate, daysInDefault, debtForDefault)
 		period.PeriodDefaults = append(period.PeriodDefaults, periodDefault)
 	}
+}
+
+func (period *LoanPeriod) annullate() {
+	period.State = LoanPeriodStateAnnulled
 }
 
 //TotalRegularDebt returns the total regular payment debt of period
@@ -164,10 +167,11 @@ func (period LoanPeriod) TotalDebt() decimal.Decimal {
 	return totalDefaultDebt.Add(totalRegularDebt)
 }
 
-func calculateDaysLate(lastPaymentDate, liquidationDate time.Time) int {
+func (period LoanPeriod) calculateDaysLate(liquidationDate time.Time) int {
+	lastLiquidationDate := period.lastLiquidationDate()
 	daysLate := 0
-	if liquidationDate.After(lastPaymentDate) {
-		daysLate = utils.DaysBetween(lastPaymentDate, liquidationDate)
+	if liquidationDate.After(lastLiquidationDate) {
+		daysLate = utils.DaysBetween(lastLiquidationDate, liquidationDate)
 	}
 	return daysLate
 }

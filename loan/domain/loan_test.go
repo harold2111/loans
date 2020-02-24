@@ -217,7 +217,7 @@ func TestLoan_LiquidatePeriods(t *testing.T) {
 		[]liquidationExpected{
 			{1, 58, toDecimal(22148.1373), toDecimal(1498.6906), toDecimal(23646.8279), 1, 0, LoanPeriodStateDue},
 			{2, 30, toDecimal(22148.1373), toDecimal(775.1848), toDecimal(22923.3221), 1, 0, LoanPeriodStateDue},
-			{3, 0, toDecimal(22148.1373), decimal.Zero, toDecimal(22148.1373), 0, 1, LoanPeriodStateDue},
+			{3, 0, toDecimal(22148.1373), decimal.Zero, toDecimal(22148.1373), 0, 0, LoanPeriodStateDue},
 			{4, 0, toDecimal(22148.1373), decimal.Zero, toDecimal(22148.1373), 0, 0, LoanPeriodStateOpen},
 			{5, 0, toDecimal(22148.1373), decimal.Zero, toDecimal(22148.1373), 0, 0, LoanPeriodStateOpen},
 		},
@@ -254,8 +254,8 @@ func TestLoan_LiquidatePeriods(t *testing.T) {
 				if len(gotPeriod.PeriodDefaults) != periodExpected.defaultExpecteds {
 					t.Errorf("len(gotPeriod.PeriodDefaults) = %v, want %v", len(gotPeriod.PeriodDefaults), periodExpected.defaultExpecteds)
 				}
-				if len(gotPeriod.PeriodPayments) != periodExpected.paymentExpecteds {
-					t.Errorf("len(gotPeriod.PeriodPayments)  = %v, want %v", len(gotPeriod.PeriodPayments), periodExpected.paymentExpecteds)
+				if len(gotPeriod.Payments) != periodExpected.paymentExpecteds {
+					t.Errorf("len(gotPeriod.PeriodPayments)  = %v, want %v", len(gotPeriod.Payments), periodExpected.paymentExpecteds)
 				}
 			}
 		})
@@ -316,8 +316,8 @@ func TestLoan_payLoanOnlyRegular(t *testing.T) {
 				if len(gotPeriod.PeriodDefaults) != periodExpected.defaultExpecteds {
 					t.Errorf("len(gotPeriod.PeriodDefaults) = %v, want %v", len(gotPeriod.PeriodDefaults), periodExpected.defaultExpecteds)
 				}
-				if len(gotPeriod.PeriodPayments) != periodExpected.paymentExpecteds {
-					t.Errorf("len(gotPeriod.PeriodPayments)  = %v, want %v", len(gotPeriod.PeriodPayments), periodExpected.paymentExpecteds)
+				if len(gotPeriod.Payments) != periodExpected.paymentExpecteds {
+					t.Errorf("len(gotPeriod.PeriodPayments)  = %v, want %v", len(gotPeriod.Payments), periodExpected.paymentExpecteds)
 				}
 			}
 		})
@@ -378,8 +378,8 @@ func TestLoan_payLoanWithExraToPrincipalAnullingLastPeriod(t *testing.T) {
 				if len(gotPeriod.PeriodDefaults) != periodExpected.defaultExpecteds {
 					t.Errorf("len(gotPeriod.PeriodDefaults) = %v, want %v", len(gotPeriod.PeriodDefaults), periodExpected.defaultExpecteds)
 				}
-				if len(gotPeriod.PeriodPayments) != periodExpected.paymentExpecteds {
-					t.Errorf("len(gotPeriod.PeriodPayments)  = %v, want %v", len(gotPeriod.PeriodPayments), periodExpected.paymentExpecteds)
+				if len(gotPeriod.Payments) != periodExpected.paymentExpecteds {
+					t.Errorf("len(gotPeriod.PeriodPayments)  = %v, want %v", len(gotPeriod.Payments), periodExpected.paymentExpecteds)
 				}
 			}
 		})
@@ -440,8 +440,8 @@ func TestLoan_payWholePrincipalOnFirstMonth(t *testing.T) {
 				if len(gotPeriod.PeriodDefaults) != periodExpected.defaultExpecteds {
 					t.Errorf("len(gotPeriod.PeriodDefaults) = %v, want %v", len(gotPeriod.PeriodDefaults), periodExpected.defaultExpecteds)
 				}
-				if len(gotPeriod.PeriodPayments) != periodExpected.paymentExpecteds {
-					t.Errorf("len(gotPeriod.PeriodPayments)  = %v, want %v", len(gotPeriod.PeriodPayments), periodExpected.paymentExpecteds)
+				if len(gotPeriod.Payments) != periodExpected.paymentExpecteds {
+					t.Errorf("len(gotPeriod.PeriodPayments)  = %v, want %v", len(gotPeriod.Payments), periodExpected.paymentExpecteds)
 				}
 			}
 		})
@@ -502,8 +502,8 @@ func TestLoan_payInitialPrincipalOnFirstMonth(t *testing.T) {
 				if len(gotPeriod.PeriodDefaults) != periodExpected.defaultExpecteds {
 					t.Errorf("len(gotPeriod.PeriodDefaults) = %v, want %v", len(gotPeriod.PeriodDefaults), periodExpected.defaultExpecteds)
 				}
-				if len(gotPeriod.PeriodPayments) != periodExpected.paymentExpecteds {
-					t.Errorf("len(gotPeriod.PeriodPayments)  = %v, want %v", len(gotPeriod.PeriodPayments), periodExpected.paymentExpecteds)
+				if len(gotPeriod.Payments) != periodExpected.paymentExpecteds {
+					t.Errorf("len(gotPeriod.PeriodPayments)  = %v, want %v", len(gotPeriod.Payments), periodExpected.paymentExpecteds)
 				}
 			}
 		})
