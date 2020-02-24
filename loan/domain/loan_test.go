@@ -176,9 +176,6 @@ func TestLoan_CreatePeriods(t *testing.T) {
 					t.Errorf("FinalPrincipal = %v, want %v", gotPeriod.FinalPrincipal, periodExpected.finalPrincipal)
 				}
 				//Modifiable fields
-				if !gotPeriod.LastPaymentDate.Equal(periodExpected.endDate) {
-					t.Errorf("LastPaymentDate = %v, want %v", gotPeriod.LastPaymentDate, periodExpected.endDate)
-				}
 				if !gotPeriod.TotalPaidToRegularDebt.Equal(decimal.Zero) {
 					t.Errorf("TotalPaidToRegularDebt = %v, want %v", gotPeriod.TotalPaidToRegularDebt, decimal.Zero)
 				}
@@ -186,6 +183,9 @@ func TestLoan_CreatePeriods(t *testing.T) {
 					t.Errorf("TotalPaidExtraToPrincipal = %v, want %v", gotPeriod.TotalPaidExtraToPrincipal, decimal.Zero)
 				}
 				//Calculated fields
+				if !gotPeriod.lastLiquidationDate().Equal(periodExpected.endDate) {
+					t.Errorf("lastLiquidationDate() = %v, want %v", gotPeriod.lastLiquidationDate(), periodExpected.endDate)
+				}
 				if !gotPeriod.TotalDefaultDebt().Equal(decimal.Zero) {
 					t.Errorf("TotalDefaultDebt() = %v, want %v", gotPeriod.TotalDefaultDebt(), decimal.Zero)
 				}

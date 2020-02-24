@@ -41,7 +41,6 @@ type LoanPeriod struct {
 	InterestOfPayment  decimal.Decimal `gorm:"type:numeric"`
 	FinalPrincipal     decimal.Decimal `gorm:"type:numeric"`
 	//Modifiable fields
-	LastPaymentDate           time.Time
 	PeriodPayments            []PeriodPayment
 	PeriodDefaults            []PeriodDefault
 	TotalPaidToRegularDebt    decimal.Decimal `gorm:"type:numeric"`
@@ -52,8 +51,8 @@ func (period *LoanPeriod) liquidateByDate(liquidationDate time.Time) {
 	if period.isPeriodOnDebt(liquidationDate) {
 		period.State = LoanPeriodStateDue
 	}
-	if period.hasToCalculateDebtForArrears(liquidationDate) {
-		period.calculateDebtForArrear(liquidationDate)
+	if period.hasToCalculateDebtForDefaults(liquidationDate) {
+		period.calculateDebtForDefaults(liquidationDate)
 	}
 }
 
@@ -118,21 +117,12 @@ func (period *LoanPeriod) applyPaymentToPrincipal(paymentID int, payment Payment
 	return remainingPayment
 }
 
-func (period *LoanPeriod) calculateDebtForArrear(liquidationDate time.Time) {
-	periodDefaults := period.PeriodDefaults
-	var lastLiquidationDate time.Time
-	if len(periodDefaults) > 0 {
-		sort.Slice(periodDefaults, func(i, j int) bool {
-			return periodDefaults[i].LiquidationDate.Before(periodDefaults[j].LiquidationDate)
-		})
-		lastLiquidationDate = periodDefaults[len(periodDefaults)-1].LiquidationDate
-	} else {
-		lastLiquidationDate = period.EndDate
-	}
-	daysInDefaultSinceLastPayment := calculateDaysLate(lastLiquidationDate, liquidationDate)
-	if daysInDefaultSinceLastPayment > 0 {
-		daysInDefault := daysInDefaultSinceLastPayment
-		debtForDefault := financial.FeeLateWithPeriodInterest(period.InterestRate, period.TotalRegularDebt(), daysInDefaultSinceLastPayment).RoundBank(config.Round)
+func (period *LoanPeriod) calculateDebtForDefaults(liquidationDate time.Time) {
+	lastLiquidationDate := period.lastLiquidationDate()
+	daysInDefaultSinceLastLiquidation := calculateDaysLate(lastLiquidationDate, liquidationDate)
+	if daysInDefaultSinceLastLiquidation > 0 {
+		daysInDefault := daysInDefaultSinceLastLiquidation
+		debtForDefault := financial.FeeLateWithPeriodInterest(period.InterestRate, period.TotalRegularDebt(), daysInDefaultSinceLastLiquidation).RoundBank(config.Round)
 		periodDefault := newPeriodDefault(period.ID, liquidationDate, daysInDefault, debtForDefault)
 		period.PeriodDefaults = append(period.PeriodDefaults, periodDefault)
 	}
@@ -187,6 +177,20 @@ func (period *LoanPeriod) isPeriodOnDebt(liquidationDate time.Time) bool {
 	return period.State == LoanPeriodStateOpen && (endate.Before(liquidationDate) || endate.Equal(liquidationDate))
 }
 
-func (period *LoanPeriod) hasToCalculateDebtForArrears(liquidationDate time.Time) bool {
+func (period *LoanPeriod) hasToCalculateDebtForDefaults(liquidationDate time.Time) bool {
 	return period.State == LoanPeriodStateDue && liquidationDate.After(period.MaxPaymentDate)
+}
+
+func (period *LoanPeriod) lastLiquidationDate() time.Time {
+	periodDefaults := period.PeriodDefaults
+	var lastLiquidationDate time.Time
+	if len(periodDefaults) > 0 {
+		sort.Slice(periodDefaults, func(i, j int) bool {
+			return periodDefaults[i].LiquidationDate.Before(periodDefaults[j].LiquidationDate)
+		})
+		lastLiquidationDate = periodDefaults[len(periodDefaults)-1].LiquidationDate
+	} else {
+		lastLiquidationDate = period.EndDate
+	}
+	return lastLiquidationDate
 }

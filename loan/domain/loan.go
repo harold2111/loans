@@ -161,7 +161,6 @@ func (l *Loan) calculatePeriods() {
 		periods[index].PrincipalOfPayment = amortization.ToPrincipal
 		periods[index].InterestOfPayment = amortization.ToInterest
 		periods[index].FinalPrincipal = amortization.FinalPrincipal
-		periods[index].LastPaymentDate = endDate
 
 	}
 	l.periods = periods

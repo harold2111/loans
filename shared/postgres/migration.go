@@ -12,10 +12,10 @@ func MigrateModel(db *gorm.DB) {
 	db.LogMode(true)
 
 	db.DropTableIfExists(&clientnDomain.Client{}, &clientnDomain.Address{}, &locationDomain.City{}, &locationDomain.Department{},
-		&locationDomain.Country{}, &loanDomain.Loan{}, &loanDomain.LoanPeriod{}, &loanDomain.LoanPeriodMovement{}, &loanDomain.Payment{})
+		&locationDomain.Country{}, &loanDomain.Loan{}, &loanDomain.LoanPeriod{}, &loanDomain.Payment{})
 
 	db.CreateTable(&clientnDomain.Client{}, &clientnDomain.Address{}, &locationDomain.City{}, &locationDomain.Department{},
-		&locationDomain.Country{}, &loanDomain.Loan{}, &loanDomain.LoanPeriod{}, &loanDomain.LoanPeriodMovement{}, &loanDomain.Payment{})
+		&locationDomain.Country{}, &loanDomain.Loan{}, &loanDomain.LoanPeriod{}, &loanDomain.Payment{})
 
 	db.Model(&clientnDomain.Client{}).Related(&clientnDomain.Address{})
 

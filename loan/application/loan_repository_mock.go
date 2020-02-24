@@ -42,10 +42,6 @@ func (r *LoanRepositoryMock) FindBillOpenPeriodByLoanID(loanID uint) (domain.Loa
 	panic("not implemented") // TODO: Implement
 }
 
-func (r *LoanRepositoryMock) StoreBillMovement(billMovement *domain.LoanPeriodMovement) error {
-	panic("not implemented") // TODO: Implement
-}
-
 func (r *LoanRepositoryMock) StorePayment(payment *domain.Payment) error {
 	panic("not implemented") // TODO: Implement
 }
