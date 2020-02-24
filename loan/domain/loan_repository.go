@@ -11,6 +11,5 @@ type LoanRepository interface {
 	FindBillsByLoanID(loanID uint) ([]LoanPeriod, error)
 	FindBillsWithDueOrOpenOrderedByPeriodAsc(loanID uint) ([]LoanPeriod, error)
 	FindBillOpenPeriodByLoanID(loanID uint) (LoanPeriod, error)
-	StoreBillMovement(billMovement *LoanPeriodMovement) error
 	StorePayment(payment *Payment) error
 }

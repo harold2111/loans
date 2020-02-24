@@ -4,6 +4,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/harold2111/loans/shared/config"
 	"github.com/harold2111/loans/shared/utils"
 	"github.com/shopspring/decimal"
 )
@@ -11,9 +12,19 @@ import (
 type createLoanArgs struct {
 	principal          decimal.Decimal
 	interestRatePeriod decimal.Decimal
-	periodNumbers      uint
+	periodNumbers      int
 	startDate          time.Time
-	clientID           uint
+	clientID           int
+}
+
+type liquidationExpected struct {
+	periodNumber        int
+	totalDaysInDefault  int
+	TotalRegularDebt    decimal.Decimal
+	totalDebtForDefault decimal.Decimal
+	totalDebt           decimal.Decimal
+	defaultExpecteds    int
+	state               string
 }
 
 func TestLoan_CreateLoan(t *testing.T) {
@@ -82,7 +93,7 @@ func TestLoan_CreateLoan(t *testing.T) {
 
 func TestLoan_CreatePeriods(t *testing.T) {
 	type periodExpected struct {
-		periodNumber       uint
+		periodNumber       int
 		startDate          time.Time
 		endDate            time.Time
 		initialPrincipal   decimal.Decimal
@@ -142,8 +153,9 @@ func TestLoan_CreatePeriods(t *testing.T) {
 				if !gotPeriod.EndDate.Equal(periodExpected.endDate) {
 					t.Errorf("EndDate = %v, want %v", gotPeriod.EndDate, periodExpected.endDate)
 				}
-				if !gotPeriod.PaymentDate.Equal(periodExpected.endDate) {
-					t.Errorf("PaymentDate = %v, want %v", gotPeriod.PaymentDate, periodExpected.endDate)
+				maxPaymentDateExpected := periodExpected.endDate.AddDate(0, 0, config.DaysAfterEndDateToConsiderateInArrears)
+				if !gotPeriod.MaxPaymentDate.Equal(maxPaymentDateExpected) {
+					t.Errorf("MaxPaymentDate = %v, want %v", gotPeriod.MaxPaymentDate, maxPaymentDateExpected)
 				}
 				if !gotPeriod.InitialPrincipal.Equal(periodExpected.initialPrincipal) {
 					t.Errorf("InitialPrincipal = %v, want %v", gotPeriod.InitialPrincipal, periodExpected.initialPrincipal)
@@ -167,48 +179,32 @@ func TestLoan_CreatePeriods(t *testing.T) {
 				if !gotPeriod.LastPaymentDate.Equal(periodExpected.endDate) {
 					t.Errorf("LastPaymentDate = %v, want %v", gotPeriod.LastPaymentDate, periodExpected.endDate)
 				}
-				if gotPeriod.DaysInArrearsSinceLastPayment != 0 {
-					t.Errorf("DaysInArrearsSinceLastPayment = %v, want %v", gotPeriod.DaysInArrearsSinceLastPayment, 0)
-				}
-				if !gotPeriod.DebtForArrearsSinceLastPayment.Equal(decimal.Zero) {
-					t.Errorf("DebtForArrearsSinceLastPayment = %v, want %v", gotPeriod.DebtForArrearsSinceLastPayment, decimal.Zero)
-				}
-				if gotPeriod.TotalDaysInArrears != 0 {
-					t.Errorf("TotalDaysInArrears = %v, want %v", gotPeriod.TotalDaysInArrears, 0)
-				}
-				if !gotPeriod.TotalDebtForArrears.Equal(decimal.Zero) {
-					t.Errorf("TotalDebtForArrears = %v, want %v", gotPeriod.DebtForArrearsSinceLastPayment, decimal.Zero)
-				}
-				if !gotPeriod.TotalDebtOfPayment.Equal(got.PaymentAgreed) {
-					t.Errorf("TotalDebtOfPayment = %v, want %v", gotPeriod.TotalDebtOfPayment, got.PaymentAgreed)
-				}
-				if !gotPeriod.TotalDebt.Equal(got.PaymentAgreed) {
-					t.Errorf("TotalDebt = %v, want %v", gotPeriod.TotalDebt, got.PaymentAgreed)
-				}
-				if !gotPeriod.TotalPaid.Equal(decimal.Zero) {
-					t.Errorf("TotalPaid = %v, want %v", gotPeriod.TotalPaid, decimal.Zero)
-				}
-				if !gotPeriod.TotalPaidToDebtForArrears.Equal(decimal.Zero) {
-					t.Errorf("TotalPaidToDebtForArrears = %v, want %v", gotPeriod.TotalPaidToDebtForArrears, decimal.Zero)
-				}
 				if !gotPeriod.TotalPaidToRegularDebt.Equal(decimal.Zero) {
 					t.Errorf("TotalPaidToRegularDebt = %v, want %v", gotPeriod.TotalPaidToRegularDebt, decimal.Zero)
 				}
 				if !gotPeriod.TotalPaidExtraToPrincipal.Equal(decimal.Zero) {
 					t.Errorf("TotalPaidExtraToPrincipal = %v, want %v", gotPeriod.TotalPaidExtraToPrincipal, decimal.Zero)
 				}
+				//Calculated fields
+				if !gotPeriod.TotalDefaultDebt().Equal(decimal.Zero) {
+					t.Errorf("TotalDefaultDebt() = %v, want %v", gotPeriod.TotalDefaultDebt(), decimal.Zero)
+				}
+				if !gotPeriod.TotalRegularDebt().Equal(got.PaymentAgreed) {
+					t.Errorf("TotalRegularDebt() = %v, want %v", gotPeriod.TotalRegularDebt(), got.PaymentAgreed)
+				}
+				if !gotPeriod.TotalDebt().Equal(got.PaymentAgreed) {
+					t.Errorf("TotalDebt() = %v, want %v", gotPeriod.TotalDebt(), got.PaymentAgreed)
+				}
+				if gotPeriod.TotalDaysInDefault() != 0 {
+					t.Errorf("TotalDaysInDefault() = %v, want %v", gotPeriod.TotalDaysInDefault(), 0)
+				}
+
 			}
 		})
 	}
 }
 
 func TestLoan_LiquidatePeriods(t *testing.T) {
-	type liquidationExpected struct {
-		periodNumber                   uint
-		daysInArrearsSinceLastPayment  int
-		debtForArrearsSinceLastPayment decimal.Decimal
-		totalDebt                      decimal.Decimal
-	}
 	liqDate := toDate(2019, 3, 30)
 	tests := []struct {
 		name string
@@ -218,11 +214,11 @@ func TestLoan_LiquidatePeriods(t *testing.T) {
 		"TestLoan_LiquidatePeriods-1",
 		createLoanArgs{toDecimal(100000), toDecimal(0.035), 5, toDate(2019, 1, 1), 1},
 		[]liquidationExpected{
-			{1, 58, toDecimal(1498.6906), toDecimal(23646.8279)},
-			{2, 30, toDecimal(775.1848), toDecimal(22923.3221)},
-			{3, 0, decimal.Zero, toDecimal(22148.1373)},
-			{4, 0, decimal.Zero, toDecimal(22148.1373)},
-			{5, 0, decimal.Zero, toDecimal(22148.1373)},
+			{1, 58, toDecimal(22148.1373), toDecimal(1498.6906), toDecimal(23646.8279), 1, LoanPeriodStateOpen},
+			{2, 30, toDecimal(22148.1373), toDecimal(775.1848), toDecimal(22923.3221), 1, LoanPeriodStateOpen},
+			{3, 0, toDecimal(22148.1373), decimal.Zero, toDecimal(22148.1373), 0, LoanPeriodStateOpen},
+			{4, 0, toDecimal(22148.1373), decimal.Zero, toDecimal(22148.1373), 0, LoanPeriodStateOpen},
+			{5, 0, toDecimal(22148.1373), decimal.Zero, toDecimal(22148.1373), 0, LoanPeriodStateOpen},
 		},
 	},
 	}
@@ -239,20 +235,20 @@ func TestLoan_LiquidatePeriods(t *testing.T) {
 				if gotPeriod.PeriodNumber != periodExpected.periodNumber {
 					t.Errorf("PeriodNumber = %v, want %v", gotPeriod.PeriodNumber, periodExpected.periodNumber)
 				}
-				if gotPeriod.DaysInArrearsSinceLastPayment != periodExpected.daysInArrearsSinceLastPayment {
-					t.Errorf("DaysInArrearsSinceLastPayment = %v, want %v", gotPeriod.DaysInArrearsSinceLastPayment, periodExpected.daysInArrearsSinceLastPayment)
+				if !gotPeriod.TotalRegularDebt().Equal(periodExpected.TotalRegularDebt) {
+					t.Errorf("TotalRegularDebt() = %v, want %v", gotPeriod.TotalRegularDebt(), periodExpected.TotalRegularDebt)
 				}
-				if !gotPeriod.DebtForArrearsSinceLastPayment.Equal(periodExpected.debtForArrearsSinceLastPayment) {
-					t.Errorf("DebtForArrearsSinceLastPayment = %v, want %v", gotPeriod.DebtForArrearsSinceLastPayment, periodExpected.debtForArrearsSinceLastPayment)
+				if gotPeriod.TotalDaysInDefault() != periodExpected.totalDaysInDefault {
+					t.Errorf("TotalDaysInDefault() = %v, want %v", gotPeriod.TotalDaysInDefault(), periodExpected.totalDaysInDefault)
 				}
-				if gotPeriod.TotalDaysInArrears != periodExpected.daysInArrearsSinceLastPayment {
-					t.Errorf("TotalDaysInArrears = %v, want %v", gotPeriod.TotalDaysInArrears, periodExpected.daysInArrearsSinceLastPayment)
+				if !gotPeriod.TotalDefaultDebt().Equal(periodExpected.totalDebtForDefault) {
+					t.Errorf("TotalDefaultDebt() = %v, want %v", gotPeriod.TotalDefaultDebt(), periodExpected.totalDebtForDefault)
 				}
-				if !gotPeriod.TotalDebtForArrears.Equal(periodExpected.debtForArrearsSinceLastPayment) {
-					t.Errorf("TotalDebtForArrears = %v, want %v", gotPeriod.TotalDebtForArrears, periodExpected.debtForArrearsSinceLastPayment)
+				if !gotPeriod.TotalDebt().Equal(periodExpected.totalDebt) {
+					t.Errorf("TotalDebt() = %v, want %v", gotPeriod.TotalDebt(), periodExpected.totalDebt)
 				}
-				if !gotPeriod.TotalDebt.Equal(periodExpected.totalDebt) {
-					t.Errorf("TotalDebt = %v, want %v", gotPeriod.TotalDebt, periodExpected.totalDebt)
+				if len(gotPeriod.PeriodDefaults) != periodExpected.defaultExpecteds {
+					t.Errorf("len(gotPeriod.PeriodDefaults) = %v, want %v", len(gotPeriod.PeriodDefaults), periodExpected.defaultExpecteds)
 				}
 			}
 		})
@@ -260,15 +256,12 @@ func TestLoan_LiquidatePeriods(t *testing.T) {
 }
 
 func TestLoan_payLoanOnlyRegular(t *testing.T) {
-	type liquidationExpected struct {
-		periodNumber                   uint
-		daysInArrearsSinceLastPayment  int
-		debtForArrearsSinceLastPayment decimal.Decimal
-		totaldebtForArrears            decimal.Decimal
-		totalDebt                      decimal.Decimal
-		state                          string
-	}
 	paymentDate := toDate(2019, 3, 30)
+	payment := Payment{
+		PaymentAmount: toDecimal(48741.9365),
+		PaymentDate:   paymentDate,
+		PaymentType:   ExtraToNextPeriods,
+	}
 	tests := []struct {
 		name string
 		args createLoanArgs
@@ -277,11 +270,11 @@ func TestLoan_payLoanOnlyRegular(t *testing.T) {
 		"TestLoan_payLoanOnlyRegular",
 		createLoanArgs{toDecimal(100000), toDecimal(0.035), 5, toDate(2019, 1, 1), 1},
 		[]liquidationExpected{
-			{1, 58, toDecimal(1498.6906), decimal.Zero, decimal.Zero, LoanPeriodStatePaid},
-			{2, 30, toDecimal(775.1848), decimal.Zero, decimal.Zero, LoanPeriodStatePaid},
-			{3, 0, decimal.Zero, decimal.Zero, toDecimal(19976.3508), LoanPeriodStateDue},
-			{4, 0, decimal.Zero, decimal.Zero, toDecimal(22148.1373), LoanPeriodStateOpen},
-			{5, 0, decimal.Zero, decimal.Zero, toDecimal(22148.1373), LoanPeriodStateOpen},
+			{1, 58, decimal.Zero, decimal.Zero, decimal.Zero, 1, LoanPeriodStatePaid},
+			{2, 30, decimal.Zero, decimal.Zero, decimal.Zero, 1, LoanPeriodStatePaid},
+			{3, 0, toDecimal(19976.3508), decimal.Zero, toDecimal(19976.3508), 0, LoanPeriodStateDue},
+			{4, 0, toDecimal(22148.1373), decimal.Zero, toDecimal(22148.1373), 0, LoanPeriodStateOpen},
+			{5, 0, toDecimal(22148.1373), decimal.Zero, toDecimal(22148.1373), 0, LoanPeriodStateOpen},
 		},
 	},
 	}
@@ -292,11 +285,6 @@ func TestLoan_payLoanOnlyRegular(t *testing.T) {
 				t.Errorf("NewLoanForCreate() error = %v", err)
 				return
 			}
-			payment := Payment{
-				PaymentAmount: toDecimal(48741.9365),
-				PaymentDate:   paymentDate,
-				PaymentType:   ExtraToNextPeriods,
-			}
 			got.ApplyPayment(payment)
 			for _, periodExpected := range tt.want {
 				gotPeriod := got.periods[periodExpected.periodNumber-1]
@@ -304,20 +292,17 @@ func TestLoan_payLoanOnlyRegular(t *testing.T) {
 					t.Errorf("PeriodNumber = %v, want %v", gotPeriod.PeriodNumber, periodExpected.periodNumber)
 				}
 				period := gotPeriod.PeriodNumber
-				if gotPeriod.DaysInArrearsSinceLastPayment != periodExpected.daysInArrearsSinceLastPayment {
-					t.Errorf("DaysInArrearsSinceLastPayment = %v, want %v [%v]", gotPeriod.DaysInArrearsSinceLastPayment, periodExpected.daysInArrearsSinceLastPayment, period)
+				if !gotPeriod.TotalRegularDebt().Equal(periodExpected.TotalRegularDebt) {
+					t.Errorf("TotalRegularDebt() = %v, want %v", gotPeriod.TotalRegularDebt(), periodExpected.TotalRegularDebt)
 				}
-				if !gotPeriod.DebtForArrearsSinceLastPayment.Equal(periodExpected.debtForArrearsSinceLastPayment) {
-					t.Errorf("DebtForArrearsSinceLastPayment = %v, want %v [%v]", gotPeriod.DebtForArrearsSinceLastPayment, periodExpected.debtForArrearsSinceLastPayment, period)
+				if gotPeriod.TotalDaysInDefault() != periodExpected.totalDaysInDefault {
+					t.Errorf("TotalDaysInDefault() = %v, want %v", gotPeriod.TotalDaysInDefault(), periodExpected.totalDaysInDefault)
 				}
-				if gotPeriod.TotalDaysInArrears != periodExpected.daysInArrearsSinceLastPayment {
-					t.Errorf("TotalDaysInArrears = %v, want %v [%v]", gotPeriod.TotalDaysInArrears, periodExpected.daysInArrearsSinceLastPayment, period)
+				if !gotPeriod.TotalDefaultDebt().Equal(periodExpected.totalDebtForDefault) {
+					t.Errorf("TotalDefaultDebt() = %v, want %v", gotPeriod.TotalDefaultDebt(), periodExpected.totalDebtForDefault)
 				}
-				if !gotPeriod.TotalDebtForArrears.Equal(periodExpected.totaldebtForArrears) {
-					t.Errorf("TotalDebtForArrears = %v, want %v [%v]", gotPeriod.TotalDebtForArrears, periodExpected.debtForArrearsSinceLastPayment, period)
-				}
-				if !gotPeriod.TotalDebt.Equal(periodExpected.totalDebt) {
-					t.Errorf("TotalDebt = %v, want %v [%v]", gotPeriod.TotalDebt, periodExpected.totalDebt, period)
+				if !gotPeriod.TotalDebt().Equal(periodExpected.totalDebt) {
+					t.Errorf("TotalDebt() = %v, want %v", gotPeriod.TotalDebt(), periodExpected.totalDebt)
 				}
 				if gotPeriod.State != periodExpected.state {
 					t.Errorf("State = %v, want %v [%v]", gotPeriod.State, periodExpected.state, period)
@@ -328,14 +313,6 @@ func TestLoan_payLoanOnlyRegular(t *testing.T) {
 }
 
 func TestLoan_payLoanWithExraToPrincipalAnullingLastPeriod(t *testing.T) {
-	type liquidationExpected struct {
-		periodNumber                   uint
-		daysInArrearsSinceLastPayment  int
-		debtForArrearsSinceLastPayment decimal.Decimal
-		totaldebtForArrears            decimal.Decimal
-		totalDebt                      decimal.Decimal
-		state                          string
-	}
 	paymentDate := toDate(2019, 3, 30)
 	tests := []struct {
 		name string
@@ -345,11 +322,11 @@ func TestLoan_payLoanWithExraToPrincipalAnullingLastPeriod(t *testing.T) {
 		"TestLoan_payLoanWithExraToPrincipalAnullingLastPeriod-1",
 		createLoanArgs{toDecimal(100000), toDecimal(0.035), 5, toDate(2019, 1, 1), 1},
 		[]liquidationExpected{
-			{1, 58, toDecimal(1498.6906), decimal.Zero, decimal.Zero, LoanPeriodStatePaid},
-			{2, 30, toDecimal(775.1848), decimal.Zero, decimal.Zero, LoanPeriodStatePaid},
-			{3, 0, decimal.Zero, decimal.Zero, decimal.Zero, LoanPeriodStatePaid},
-			{4, 0, decimal.Zero, decimal.Zero, decimal.Zero, LoanPeriodStatePaid},
-			{5, 0, decimal.Zero, decimal.Zero, toDecimal(22148.1373), LoanPeriodStateAnnulled},
+			{1, 58, decimal.Zero, decimal.Zero, decimal.Zero, 1, LoanPeriodStatePaid},
+			{2, 30, decimal.Zero, decimal.Zero, decimal.Zero, 1, LoanPeriodStatePaid},
+			{3, 0, decimal.Zero, decimal.Zero, decimal.Zero, 0, LoanPeriodStatePaid},
+			{4, 0, decimal.Zero, decimal.Zero, decimal.Zero, 0, LoanPeriodStatePaid},
+			{5, 0, decimal.Zero, decimal.Zero, decimal.Zero, 0, LoanPeriodStateAnnulled},
 		},
 	},
 	}
@@ -372,20 +349,17 @@ func TestLoan_payLoanWithExraToPrincipalAnullingLastPeriod(t *testing.T) {
 					t.Errorf("PeriodNumber = %v, want %v", gotPeriod.PeriodNumber, periodExpected.periodNumber)
 				}
 				period := gotPeriod.PeriodNumber
-				if gotPeriod.DaysInArrearsSinceLastPayment != periodExpected.daysInArrearsSinceLastPayment {
-					t.Errorf("DaysInArrearsSinceLastPayment = %v, want %v [%v]", gotPeriod.DaysInArrearsSinceLastPayment, periodExpected.daysInArrearsSinceLastPayment, period)
+				if !gotPeriod.TotalRegularDebt().Equal(periodExpected.TotalRegularDebt) {
+					t.Errorf("TotalRegularDebt() = %v, want %v", gotPeriod.TotalRegularDebt(), periodExpected.TotalRegularDebt)
 				}
-				if !gotPeriod.DebtForArrearsSinceLastPayment.Equal(periodExpected.debtForArrearsSinceLastPayment) {
-					t.Errorf("DebtForArrearsSinceLastPayment = %v, want %v [%v]", gotPeriod.DebtForArrearsSinceLastPayment, periodExpected.debtForArrearsSinceLastPayment, period)
+				if gotPeriod.TotalDaysInDefault() != periodExpected.totalDaysInDefault {
+					t.Errorf("TotalDaysInDefault() = %v, want %v", gotPeriod.TotalDaysInDefault(), periodExpected.totalDaysInDefault)
 				}
-				if gotPeriod.TotalDaysInArrears != periodExpected.daysInArrearsSinceLastPayment {
-					t.Errorf("TotalDaysInArrears = %v, want %v [%v]", gotPeriod.TotalDaysInArrears, periodExpected.daysInArrearsSinceLastPayment, period)
+				if !gotPeriod.TotalDefaultDebt().Equal(periodExpected.totalDebtForDefault) {
+					t.Errorf("TotalDefaultDebt() = %v, want %v", gotPeriod.TotalDefaultDebt(), periodExpected.totalDebtForDefault)
 				}
-				if !gotPeriod.TotalDebtForArrears.Equal(periodExpected.totaldebtForArrears) {
-					t.Errorf("TotalDebtForArrears = %v, want %v [%v]", gotPeriod.TotalDebtForArrears, periodExpected.debtForArrearsSinceLastPayment, period)
-				}
-				if !gotPeriod.TotalDebt.Equal(periodExpected.totalDebt) {
-					t.Errorf("TotalDebt = %v, want %v [%v]", gotPeriod.TotalDebt, periodExpected.totalDebt, period)
+				if !gotPeriod.TotalDebt().Equal(periodExpected.totalDebt) {
+					t.Errorf("TotalDebt() = %v, want %v", gotPeriod.TotalDebt(), periodExpected.totalDebt)
 				}
 				if gotPeriod.State != periodExpected.state {
 					t.Errorf("State = %v, want %v [%v]", gotPeriod.State, periodExpected.state, period)
@@ -396,14 +370,6 @@ func TestLoan_payLoanWithExraToPrincipalAnullingLastPeriod(t *testing.T) {
 }
 
 func TestLoan_payWholePrincipalOnFirstMonth(t *testing.T) {
-	type liquidationExpected struct {
-		periodNumber                   uint
-		daysInArrearsSinceLastPayment  int
-		debtForArrearsSinceLastPayment decimal.Decimal
-		totaldebtForArrears            decimal.Decimal
-		totalDebt                      decimal.Decimal
-		state                          string
-	}
 	paymentDate := toDate(2019, 1, 10)
 	tests := []struct {
 		name string
@@ -413,11 +379,11 @@ func TestLoan_payWholePrincipalOnFirstMonth(t *testing.T) {
 		"TestLoan_payWholePrincipalOnFirstMonth-1",
 		createLoanArgs{toDecimal(100000), toDecimal(0.035), 5, toDate(2019, 1, 1), 1},
 		[]liquidationExpected{
-			{1, 0, decimal.Zero, decimal.Zero, decimal.Zero, LoanPeriodStatePaid},
-			{2, 0, decimal.Zero, decimal.Zero, toDecimal(22148.1373), LoanPeriodStateAnnulled},
-			{3, 0, decimal.Zero, decimal.Zero, toDecimal(22148.1373), LoanPeriodStateAnnulled},
-			{4, 0, decimal.Zero, decimal.Zero, toDecimal(22148.1373), LoanPeriodStateAnnulled},
-			{5, 0, decimal.Zero, decimal.Zero, toDecimal(22148.1373), LoanPeriodStateAnnulled},
+			{1, 0, decimal.Zero, decimal.Zero, decimal.Zero, 0, LoanPeriodStatePaid},
+			{2, 0, decimal.Zero, decimal.Zero, decimal.Zero, 0, LoanPeriodStateAnnulled},
+			{3, 0, decimal.Zero, decimal.Zero, decimal.Zero, 0, LoanPeriodStateAnnulled},
+			{4, 0, decimal.Zero, decimal.Zero, decimal.Zero, 0, LoanPeriodStateAnnulled},
+			{5, 0, decimal.Zero, decimal.Zero, decimal.Zero, 0, LoanPeriodStateAnnulled},
 		},
 	},
 	}
@@ -440,20 +406,17 @@ func TestLoan_payWholePrincipalOnFirstMonth(t *testing.T) {
 					t.Errorf("PeriodNumber = %v, want %v", gotPeriod.PeriodNumber, periodExpected.periodNumber)
 				}
 				period := gotPeriod.PeriodNumber
-				if gotPeriod.DaysInArrearsSinceLastPayment != periodExpected.daysInArrearsSinceLastPayment {
-					t.Errorf("DaysInArrearsSinceLastPayment = %v, want %v [%v]", gotPeriod.DaysInArrearsSinceLastPayment, periodExpected.daysInArrearsSinceLastPayment, period)
+				if !gotPeriod.TotalRegularDebt().Equal(periodExpected.TotalRegularDebt) {
+					t.Errorf("TotalRegularDebt() = %v, want %v", gotPeriod.TotalRegularDebt(), periodExpected.TotalRegularDebt)
 				}
-				if !gotPeriod.DebtForArrearsSinceLastPayment.Equal(periodExpected.debtForArrearsSinceLastPayment) {
-					t.Errorf("DebtForArrearsSinceLastPayment = %v, want %v [%v]", gotPeriod.DebtForArrearsSinceLastPayment, periodExpected.debtForArrearsSinceLastPayment, period)
+				if gotPeriod.TotalDaysInDefault() != periodExpected.totalDaysInDefault {
+					t.Errorf("TotalDaysInDefault() = %v, want %v", gotPeriod.TotalDaysInDefault(), periodExpected.totalDaysInDefault)
 				}
-				if gotPeriod.TotalDaysInArrears != periodExpected.daysInArrearsSinceLastPayment {
-					t.Errorf("TotalDaysInArrears = %v, want %v [%v]", gotPeriod.TotalDaysInArrears, periodExpected.daysInArrearsSinceLastPayment, period)
+				if !gotPeriod.TotalDefaultDebt().Equal(periodExpected.totalDebtForDefault) {
+					t.Errorf("TotalDefaultDebt() = %v, want %v", gotPeriod.TotalDefaultDebt(), periodExpected.totalDebtForDefault)
 				}
-				if !gotPeriod.TotalDebtForArrears.Equal(periodExpected.totaldebtForArrears) {
-					t.Errorf("TotalDebtForArrears = %v, want %v [%v]", gotPeriod.TotalDebtForArrears, periodExpected.debtForArrearsSinceLastPayment, period)
-				}
-				if !gotPeriod.TotalDebt.Equal(periodExpected.totalDebt) {
-					t.Errorf("TotalDebt = %v, want %v [%v]", gotPeriod.TotalDebt, periodExpected.totalDebt, period)
+				if !gotPeriod.TotalDebt().Equal(periodExpected.totalDebt) {
+					t.Errorf("TotalDebt() = %v, want %v", gotPeriod.TotalDebt(), periodExpected.totalDebt)
 				}
 				if gotPeriod.State != periodExpected.state {
 					t.Errorf("State = %v, want %v [%v]", gotPeriod.State, periodExpected.state, period)
@@ -464,14 +427,6 @@ func TestLoan_payWholePrincipalOnFirstMonth(t *testing.T) {
 }
 
 func TestLoan_payInitialPrincipalOnFirstMonth(t *testing.T) {
-	type liquidationExpected struct {
-		periodNumber                   uint
-		daysInArrearsSinceLastPayment  int
-		debtForArrearsSinceLastPayment decimal.Decimal
-		totaldebtForArrears            decimal.Decimal
-		totalDebt                      decimal.Decimal
-		state                          string
-	}
 	paymentDate := toDate(2019, 1, 10)
 	tests := []struct {
 		name string
@@ -481,11 +436,11 @@ func TestLoan_payInitialPrincipalOnFirstMonth(t *testing.T) {
 		"TestLoan_payInitialPrincipalOnFirstMonth-1",
 		createLoanArgs{toDecimal(100000), toDecimal(0.035), 5, toDate(2019, 1, 1), 1},
 		[]liquidationExpected{
-			{1, 0, decimal.Zero, decimal.Zero, decimal.Zero, LoanPeriodStatePaid},
-			{2, 0, decimal.Zero, decimal.Zero, toDecimal(22148.1373), LoanPeriodStateOpen},
-			{3, 0, decimal.Zero, decimal.Zero, toDecimal(22148.1373), LoanPeriodStateAnnulled},
-			{4, 0, decimal.Zero, decimal.Zero, toDecimal(22148.1373), LoanPeriodStateAnnulled},
-			{5, 0, decimal.Zero, decimal.Zero, toDecimal(22148.1373), LoanPeriodStateAnnulled},
+			{1, 0, decimal.Zero, decimal.Zero, decimal.Zero, 0, LoanPeriodStatePaid},
+			{2, 0, toDecimal(3622.500), decimal.Zero, toDecimal(3622.500), 0, LoanPeriodStateOpen},
+			{3, 0, decimal.Zero, decimal.Zero, decimal.Zero, 0, LoanPeriodStateAnnulled},
+			{4, 0, decimal.Zero, decimal.Zero, decimal.Zero, 0, LoanPeriodStateAnnulled},
+			{5, 0, decimal.Zero, decimal.Zero, decimal.Zero, 0, LoanPeriodStateAnnulled},
 		},
 	},
 	}
@@ -508,20 +463,17 @@ func TestLoan_payInitialPrincipalOnFirstMonth(t *testing.T) {
 					t.Errorf("PeriodNumber = %v, want %v", gotPeriod.PeriodNumber, periodExpected.periodNumber)
 				}
 				period := gotPeriod.PeriodNumber
-				if gotPeriod.DaysInArrearsSinceLastPayment != periodExpected.daysInArrearsSinceLastPayment {
-					t.Errorf("DaysInArrearsSinceLastPayment = %v, want %v [%v]", gotPeriod.DaysInArrearsSinceLastPayment, periodExpected.daysInArrearsSinceLastPayment, period)
+				if !gotPeriod.TotalRegularDebt().Equal(periodExpected.TotalRegularDebt) {
+					t.Errorf("TotalRegularDebt() = %v, want %v", gotPeriod.TotalRegularDebt(), periodExpected.TotalRegularDebt)
 				}
-				if !gotPeriod.DebtForArrearsSinceLastPayment.Equal(periodExpected.debtForArrearsSinceLastPayment) {
-					t.Errorf("DebtForArrearsSinceLastPayment = %v, want %v [%v]", gotPeriod.DebtForArrearsSinceLastPayment, periodExpected.debtForArrearsSinceLastPayment, period)
+				if gotPeriod.TotalDaysInDefault() != periodExpected.totalDaysInDefault {
+					t.Errorf("TotalDaysInDefault() = %v, want %v", gotPeriod.TotalDaysInDefault(), periodExpected.totalDaysInDefault)
 				}
-				if gotPeriod.TotalDaysInArrears != periodExpected.daysInArrearsSinceLastPayment {
-					t.Errorf("TotalDaysInArrears = %v, want %v [%v]", gotPeriod.TotalDaysInArrears, periodExpected.daysInArrearsSinceLastPayment, period)
+				if !gotPeriod.TotalDefaultDebt().Equal(periodExpected.totalDebtForDefault) {
+					t.Errorf("TotalDefaultDebt() = %v, want %v", gotPeriod.TotalDefaultDebt(), periodExpected.totalDebtForDefault)
 				}
-				if !gotPeriod.TotalDebtForArrears.Equal(periodExpected.totaldebtForArrears) {
-					t.Errorf("TotalDebtForArrears = %v, want %v [%v]", gotPeriod.TotalDebtForArrears, periodExpected.debtForArrearsSinceLastPayment, period)
-				}
-				if !gotPeriod.TotalDebt.Equal(periodExpected.totalDebt) {
-					t.Errorf("TotalDebt = %v, want %v [%v]", gotPeriod.TotalDebt, periodExpected.totalDebt, period)
+				if !gotPeriod.TotalDebt().Equal(periodExpected.totalDebt) {
+					t.Errorf("TotalDebt() = %v, want %v", gotPeriod.TotalDebt(), periodExpected.totalDebt)
 				}
 				if gotPeriod.State != periodExpected.state {
 					t.Errorf("State = %v, want %v [%v]", gotPeriod.State, periodExpected.state, period)

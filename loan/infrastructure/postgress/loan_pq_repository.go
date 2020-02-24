@@ -76,10 +76,6 @@ func (r *loanRepository) FindBillOpenPeriodByLoanID(loanID uint) (loanDomain.Loa
 	return bill, error
 }
 
-func (r *loanRepository) StoreBillMovement(billMovement *loanDomain.LoanPeriodMovement) error {
-	return r.db.Create(billMovement).Error
-}
-
 func (r *loanRepository) StorePayment(payment *loanDomain.Payment) error {
 	return r.db.Create(payment).Error
 }
