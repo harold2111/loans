@@ -7,8 +7,8 @@ import (
 	"github.com/shopspring/decimal"
 )
 
-//PeriodDefault represents period defaults
-type PeriodDefault struct {
+//DefaultPeriod represents period defaults
+type DefaultPeriod struct {
 	ID              int
 	PeriodID        int
 	LiquidationDate time.Time
@@ -18,11 +18,11 @@ type PeriodDefault struct {
 	Payments        []DefaultPayment
 }
 
-func newPeriodDefault(periodID int, liquidationDate time.Time, daysInDefault int, debtForDefault decimal.Decimal) PeriodDefault {
-	return PeriodDefault{0, periodID, liquidationDate, daysInDefault, debtForDefault, decimal.Zero, []DefaultPayment{}}
+func newDefaultPeriod(periodID int, liquidationDate time.Time, daysInDefault int, debtForDefault decimal.Decimal) DefaultPeriod {
+	return DefaultPeriod{0, periodID, liquidationDate, daysInDefault, debtForDefault, decimal.Zero, []DefaultPayment{}}
 }
 
-func (d *PeriodDefault) applyPayment(paymentID int, paymentAmount decimal.Decimal) decimal.Decimal {
+func (d *DefaultPeriod) applyPayment(paymentID int, paymentAmount decimal.Decimal) decimal.Decimal {
 	remainingPayment := paymentAmount
 	var paymentToDefault decimal.Decimal
 	if remainingPayment.LessThanOrEqual(d.totalDebt()) {
@@ -37,6 +37,6 @@ func (d *PeriodDefault) applyPayment(paymentID int, paymentAmount decimal.Decima
 	return remainingPayment.RoundBank(config.Round)
 }
 
-func (d PeriodDefault) totalDebt() decimal.Decimal {
+func (d DefaultPeriod) totalDebt() decimal.Decimal {
 	return d.DebtForDefault.Sub(d.PaidToDefault)
 }

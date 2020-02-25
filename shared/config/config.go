@@ -5,7 +5,7 @@ import "time"
 const (
 	Round                                  = 4
 	DaysBeforeEndDateToConsiderateDue      = -15
-	DaysAfterEndDateToConsiderateInArrears = 5
+	DaysAfterEndDateToConsiderateInDefault = 5
 )
 
 func DefaultLocation() *time.Location {

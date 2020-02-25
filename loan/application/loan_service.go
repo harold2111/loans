@@ -89,7 +89,7 @@ func (s *LoanService) PayLoan(payment *loanDomain.Payment) error {
 	for _, period := range loanPeriodsWithDebt {
 		period.LiquidateByDate(payment.PaymentDate, 0)
 	}
-	var paidPeriods []loanDomain.LoanPeriod
+	var paidPeriods []loanDomain.Period
 	var paidPeriodMovements []loanDomain.LoanPeriodMovement
 	remainingPayment := payment.PaymentAmount.RoundBank(config.Round)
 	continueApplyingPayment := true
@@ -133,7 +133,7 @@ func (s *LoanService) closeLoan(loanID uint) error {
 	return s.loanRepository.UpdateLoan(&loan)
 }
 
-func nextBalanceFromLoanPeriod(loanPeriod loanDomain.LoanPeriod) financial.Balance {
+func nextBalanceFromLoanPeriod(loanPeriod loanDomain.Period) financial.Balance {
 	balance := financial.Balance{}
 	balance.InitialPrincipal = loanPeriod.InitialPrincipal
 	balance.Payment = loanPeriod.Payment

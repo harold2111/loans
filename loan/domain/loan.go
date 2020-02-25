@@ -32,7 +32,7 @@ type Loan struct {
 	CloseDateAgreed    time.Time
 	CloseDate          *time.Time
 	State              string
-	periods            []LoanPeriod
+	periods            []Period
 	ClientID           int `gorm:"not null"`
 }
 
@@ -91,8 +91,8 @@ func (l *Loan) applyRegularPayments(payment Payment) Payment {
 	numPeriods := len(periods)
 	for periodIndex := 0; periodIndex < numPeriods; periodIndex++ {
 		period := &periods[periodIndex]
-		if period.State == LoanPeriodStateDue ||
-			(period.State == LoanPeriodStateOpen && payment.isExtraToNextPeriods()) {
+		if period.State == PeriodStateDue ||
+			(period.State == PeriodStateOpen && payment.isExtraToNextPeriods()) {
 			remainingPayment = period.applyRegularPayment(remainingPayment)
 		}
 	}
@@ -138,7 +138,7 @@ func (l *Loan) calculateCloseDateAgreed() {
 
 func (l *Loan) calculatePeriods() {
 	amortizations := financial.Amortizations(l.Principal, l.InterestRatePeriod, int(l.PeriodNumbers))
-	periods := make([]LoanPeriod, len(amortizations))
+	periods := make([]Period, len(amortizations))
 	for index, amortization := range amortizations {
 		var startDate time.Time
 		var endDate time.Time
@@ -149,9 +149,9 @@ func (l *Loan) calculatePeriods() {
 			startDate = utils.AddMothToTimeForPayment(l.StartDate, periodNumber-1)
 		}
 		endDate = utils.AddMothToTimeForPayment(l.StartDate, periodNumber).AddDate(0, 0, -1)
-		maxPaymentDate := endDate.AddDate(0, 0, config.DaysAfterEndDateToConsiderateInArrears)
+		maxPaymentDate := endDate.AddDate(0, 0, config.DaysAfterEndDateToConsiderateInDefault)
 		periods[index].PeriodNumber = periodNumber
-		periods[index].State = LoanPeriodStateOpen
+		periods[index].State = PeriodStateOpen
 		periods[index].StartDate = startDate
 		periods[index].EndDate = endDate
 		periods[index].MaxPaymentDate = maxPaymentDate
@@ -166,7 +166,7 @@ func (l *Loan) calculatePeriods() {
 	l.periods = periods
 }
 
-func (l *Loan) recalculatePeriodsForExtraPrincipalPayment(periodWithExtraPrincipalPayment LoanPeriod) {
+func (l *Loan) recalculatePeriodsForExtraPrincipalPayment(periodWithExtraPrincipalPayment Period) {
 	periods := l.periods
 	numPeriods := len(periods)
 	recalculatedPeriodIndex := int(periodWithExtraPrincipalPayment.PeriodNumber)
@@ -195,12 +195,12 @@ func (l *Loan) recalculatePeriodsForExtraPrincipalPayment(periodWithExtraPrincip
 	}
 }
 
-func (l *Loan) findFirstOpenPeriod() *LoanPeriod {
+func (l *Loan) findFirstOpenPeriod() *Period {
 	numPeriods := len(l.periods)
 	periods := l.periods
 	for index := 0; index < numPeriods; index++ {
 		period := &periods[index]
-		if period.State == LoanPeriodStateOpen {
+		if period.State == PeriodStateOpen {
 			return period
 		}
 	}
