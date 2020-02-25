@@ -75,7 +75,6 @@ func (period *Period) applyPaymentToDefaults(paymentID int, paymentAmount decima
 	}
 	for periodDefaultIndex := 0; periodDefaultIndex < len(period.DefaultPeriods); periodDefaultIndex++ {
 		remainingPayment = period.DefaultPeriods[periodDefaultIndex].applyPayment(paymentID, paymentAmount)
-
 	}
 	return remainingPayment.RoundBank(config.Round)
 }
