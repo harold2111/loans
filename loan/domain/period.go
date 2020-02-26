@@ -57,62 +57,62 @@ func (period *Period) liquidateByDate(liquidationDate time.Time) {
 }
 
 func (period *Period) applyRegularPayment(payment Payment) Payment {
-	remainingPayment := payment.PaymentAmount
-	remainingPayment = period.applyPaymentToDefaults(payment.ID, remainingPayment)
-	remainingPayment = period.applyPaymentToRegularDebt(payment.ID, remainingPayment)
+	remainingAmount := payment.RemainingAmount
+	remainingAmount = period.applyPaymentToDefaults(payment.ID, remainingAmount)
+	remainingAmount = period.applyPaymentToRegularDebt(payment.ID, remainingAmount)
 	if period.TotalDebt().LessThanOrEqual(decimal.Zero) {
 		period.State = PeriodStatePaid
 	}
-	payment.PaymentAmount = remainingPayment
+	payment.RemainingAmount = remainingAmount
 	return payment
 }
 
 func (period *Period) applyPaymentToDefaults(paymentID int, paymentAmount decimal.Decimal) decimal.Decimal {
-	remainingPayment := paymentAmount
+	remainingAmount := paymentAmount
 	totalDefaultDebt := period.TotalDefaultDebt()
-	if totalDefaultDebt.LessThanOrEqual(decimal.Zero) || remainingPayment.LessThanOrEqual(decimal.Zero) {
-		return remainingPayment
+	if totalDefaultDebt.LessThanOrEqual(decimal.Zero) || remainingAmount.LessThanOrEqual(decimal.Zero) {
+		return remainingAmount
 	}
 	for periodDefaultIndex := 0; periodDefaultIndex < len(period.DefaultPeriods); periodDefaultIndex++ {
-		remainingPayment = period.DefaultPeriods[periodDefaultIndex].applyPayment(paymentID, paymentAmount)
+		remainingAmount = period.DefaultPeriods[periodDefaultIndex].applyPayment(paymentID, paymentAmount)
 	}
-	return remainingPayment.RoundBank(config.Round)
+	return remainingAmount.RoundBank(config.Round)
 }
 
-func (period *Period) applyPaymentToRegularDebt(paymentID int, payment decimal.Decimal) decimal.Decimal {
-	remainingPayment := payment
+func (period *Period) applyPaymentToRegularDebt(paymentID int, paymentAmount decimal.Decimal) decimal.Decimal {
+	remainingAmount := paymentAmount
 	totalDebtOfPayment := period.TotalRegularDebt()
-	if totalDebtOfPayment.LessThanOrEqual(decimal.Zero) || remainingPayment.LessThanOrEqual(decimal.Zero) {
-		return remainingPayment
+	if totalDebtOfPayment.LessThanOrEqual(decimal.Zero) || remainingAmount.LessThanOrEqual(decimal.Zero) {
+		return remainingAmount
 	}
 	var paymentToRegularDebt decimal.Decimal
-	if remainingPayment.LessThanOrEqual(totalDebtOfPayment) {
-		paymentToRegularDebt = remainingPayment
+	if remainingAmount.LessThanOrEqual(totalDebtOfPayment) {
+		paymentToRegularDebt = remainingAmount
 	} else {
 		paymentToRegularDebt = totalDebtOfPayment
 	}
 	periodPayment := newPeriodPayment(period.ID, paymentID, paymentToRegularDebt, PaymentTypeRegular)
 	period.Payments = append(period.Payments, periodPayment)
 	period.TotalPaidToRegularDebt = period.TotalPaidToRegularDebt.Add(paymentToRegularDebt).RoundBank(config.Round)
-	return remainingPayment.Sub(paymentToRegularDebt).RoundBank(config.Round)
+	return remainingAmount.Sub(paymentToRegularDebt).RoundBank(config.Round)
 }
 
-func (period *Period) applyPaymentToPrincipal(paymentID int, payment Payment) Payment {
+func (period *Period) applyPaymentToPrincipal(payment Payment) Payment {
 	remainingPayment := payment
-	if remainingPayment.PaymentAmount.LessThanOrEqual(decimal.Zero) {
+	if remainingPayment.RemainingAmount.LessThanOrEqual(decimal.Zero) {
 		return remainingPayment
 	}
 	var paymentToExtraPrincipal decimal.Decimal
-	if remainingPayment.PaymentAmount.GreaterThanOrEqual(period.FinalPrincipal) {
+	if remainingPayment.RemainingAmount.GreaterThanOrEqual(period.FinalPrincipal) {
 		paymentToExtraPrincipal = period.FinalPrincipal
 	} else {
-		paymentToExtraPrincipal = remainingPayment.PaymentAmount
+		paymentToExtraPrincipal = remainingPayment.RemainingAmount
 	}
-	periodPayment := newPeriodPayment(period.ID, paymentID, paymentToExtraPrincipal, PaymentTypePrincipal)
+	periodPayment := newPeriodPayment(period.ID, payment.ID, paymentToExtraPrincipal, PaymentTypePrincipal)
 	period.Payments = append(period.Payments, periodPayment)
 	period.FinalPrincipal = period.FinalPrincipal.Sub(paymentToExtraPrincipal).RoundBank(config.Round)
 	period.TotalPaidExtraToPrincipal = period.TotalPaidExtraToPrincipal.Add(paymentToExtraPrincipal).RoundBank(config.Round)
-	remainingPayment.PaymentAmount = remainingPayment.PaymentAmount.Sub(paymentToExtraPrincipal).RoundBank(config.Round)
+	remainingPayment.RemainingAmount = remainingPayment.RemainingAmount.Sub(paymentToExtraPrincipal).RoundBank(config.Round)
 	return remainingPayment
 }
 

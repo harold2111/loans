@@ -28,7 +28,7 @@ func (r *loanRepository) FindAll() ([]loanDomain.Loan, error) {
 	return loans, nil
 }
 
-func (r *loanRepository) FindLoanByID(loanID uint) (loanDomain.Loan, error) {
+func (r *loanRepository) FindLoanByID(loanID int) (loanDomain.Loan, error) {
 	var loan loanDomain.Loan
 	respose := r.db.First(&loan, loanID)
 	if error := respose.Error; error != nil {
@@ -57,19 +57,19 @@ func (r *loanRepository) UpdateBill(bill *loanDomain.Period) error {
 	return r.db.Save(bill).Error
 }
 
-func (r *loanRepository) FindBillsByLoanID(loanID uint) ([]loanDomain.Period, error) {
+func (r *loanRepository) FindBillsByLoanID(loanID int) ([]loanDomain.Period, error) {
 	var bills []loanDomain.Period
 	r.db.Find(&bills, "loan_id = ?", loanID)
 	return bills, nil
 }
 
-func (r *loanRepository) FindBillsWithDueOrOpenOrderedByPeriodAsc(loanID uint) ([]loanDomain.Period, error) {
+func (r *loanRepository) FindBillsWithDueOrOpenOrderedByPeriodAsc(loanID int) ([]loanDomain.Period, error) {
 	var bills []loanDomain.Period
 	r.db.Order("period").Find(&bills, "loan_id = ? AND state = ? OR period_status = ?", loanID, loanDomain.PeriodStateDue, loanDomain.PeriodStateOpen)
 	return bills, nil
 }
 
-func (r *loanRepository) FindBillOpenPeriodByLoanID(loanID uint) (loanDomain.Period, error) {
+func (r *loanRepository) FindBillOpenPeriodByLoanID(loanID int) (loanDomain.Period, error) {
 	bill := loanDomain.Period{}
 	error := r.db.Raw("SELECT * FROM bills WHERE loan_id = ? AND period_status = ? AND period = (SELECT max(period) FROM bills where loan_id = ?)",
 		loanID, loanDomain.PeriodStateOpen, loanID).Scan(&bill).Error

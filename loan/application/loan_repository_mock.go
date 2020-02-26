@@ -18,7 +18,7 @@ func (r *LoanRepositoryMock) UpdateLoan(loan *domain.Loan) error {
 	panic("not implemented") // TODO: Implement
 }
 
-func (r *LoanRepositoryMock) FindLoanByID(loanID uint) (domain.Loan, error) {
+func (r *LoanRepositoryMock) FindLoanByID(loanID int) (domain.Loan, error) {
 	panic("not implemented") // TODO: Implement
 }
 
@@ -30,15 +30,15 @@ func (r *LoanRepositoryMock) UpdateBill(bill *domain.Period) error {
 	panic("not implemented") // TODO: Implement
 }
 
-func (r *LoanRepositoryMock) FindBillsByLoanID(loanID uint) ([]domain.Period, error) {
+func (r *LoanRepositoryMock) FindBillsByLoanID(loanID int) ([]domain.Period, error) {
 	panic("not implemented") // TODO: Implement
 }
 
-func (r *LoanRepositoryMock) FindBillsWithDueOrOpenOrderedByPeriodAsc(loanID uint) ([]domain.Period, error) {
+func (r *LoanRepositoryMock) FindBillsWithDueOrOpenOrderedByPeriodAsc(loanID int) ([]domain.Period, error) {
 	panic("not implemented") // TODO: Implement
 }
 
-func (r *LoanRepositoryMock) FindBillOpenPeriodByLoanID(loanID uint) (domain.Period, error) {
+func (r *LoanRepositoryMock) FindBillOpenPeriodByLoanID(loanID int) (domain.Period, error) {
 	panic("not implemented") // TODO: Implement
 }
 

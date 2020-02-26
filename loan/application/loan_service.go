@@ -3,19 +3,15 @@ package application
 import (
 	clientDomain "github.com/harold2111/loans/client/domain"
 	loanDomain "github.com/harold2111/loans/loan/domain"
-	"github.com/harold2111/loans/shared/config"
-	"github.com/harold2111/loans/shared/utils"
-	"github.com/harold2111/loans/shared/utils/financial"
-
-	"github.com/shopspring/decimal"
 )
 
+//LoanService service to operate over loans
 type LoanService struct {
 	loanRepository   loanDomain.LoanRepository
 	clientRepository clientDomain.ClientRepository
 }
 
-// NewLoanService creates a loan service with necessary dependencies.
+// NewLoanService creates a loan service with its necessary dependencies.
 func NewLoanService(loanRepository loanDomain.LoanRepository, clientRepository clientDomain.ClientRepository) LoanService {
 	return LoanService{
 		loanRepository:   loanRepository,
@@ -23,12 +19,15 @@ func NewLoanService(loanRepository loanDomain.LoanRepository, clientRepository c
 	}
 }
 
+//FindAllLoans finds all loans in the system
 func (s *LoanService) FindAllLoans() ([]loanDomain.Loan, error) {
 	return s.loanRepository.FindAll()
 }
 
-func (s *LoanService) SimulateLoan(request CreateLoanRequest) (*LoanAmortizationsResponse, error) {
-	loan, error := loanDomain.NewLoanForCreate(
+//SimulateLoan creates and returns a loan without persisting
+func (s *LoanService) SimulateLoan(request CreateLoanRequest) (LoanAmortizationsResponse, error) {
+	var response LoanAmortizationsResponse
+	loan, error := loanDomain.NewLoan(
 		request.Principal,
 		request.InterestRatePeriod,
 		request.PeriodNumbers,
@@ -36,33 +35,33 @@ func (s *LoanService) SimulateLoan(request CreateLoanRequest) (*LoanAmortization
 		request.ClientID,
 	)
 	if error != nil {
-		return nil, error
+		return response, error
 	}
-	amortizations := financial.Amortizations(loan.Principal, loan.InterestRatePeriod, int(loan.PeriodNumbers))
-	var response LoanAmortizationsResponse
 	response.ID = 0
-	response.Principal = request.Principal
-	response.InterestRatePeriod = request.InterestRatePeriod
-	response.PeriodNumbers = request.PeriodNumbers
-	response.StartDate = request.StartDate
-	response.ClientID = request.ClientID
-	response.PaymentAgreed = amortizations[0].Payment
-	response.Amortizations = make([]AmortizationResponse, len(amortizations))
-	for index, amoritzation := range amortizations {
+	response.Principal = loan.Principal
+	response.InterestRatePeriod = loan.InterestRatePeriod
+	response.PeriodNumbers = loan.PeriodNumbers
+	response.StartDate = loan.StartDate
+	response.ClientID = loan.ClientID
+	response.PaymentAgreed = loan.PaymentAgreed
+	periods := loan.Periods
+	response.Amortizations = make([]AmortizationResponse, len(periods))
+	for index, period := range periods {
 		response.Amortizations[index].Period = index + 1
-		response.Amortizations[index].PaymentDate = utils.AddMothToTimeForPayment(response.StartDate, index+1)
-		response.Amortizations[index].InitialPrincipal = amoritzation.InitialPrincipal
-		response.Amortizations[index].Payment = amoritzation.Payment
-		response.Amortizations[index].InterestRatePeriod = amoritzation.InterestRatePeriod
-		response.Amortizations[index].ToInterest = amoritzation.ToInterest
-		response.Amortizations[index].ToPrincipal = amoritzation.ToPrincipal
-		response.Amortizations[index].FinalPrincipal = amoritzation.FinalPrincipal
+		response.Amortizations[index].MaxPaymentDate = period.MaxPaymentDate
+		response.Amortizations[index].InitialPrincipal = period.InitialPrincipal
+		response.Amortizations[index].Payment = period.Payment
+		response.Amortizations[index].InterestRatePeriod = period.InterestRate
+		response.Amortizations[index].ToInterest = period.InterestOfPayment
+		response.Amortizations[index].ToPrincipal = period.PrincipalOfPayment
+		response.Amortizations[index].FinalPrincipal = period.FinalPrincipal
 	}
-	return &response, nil
+	return response, nil
 }
 
+//CreateLoan create and persist a new loan
 func (s *LoanService) CreateLoan(request CreateLoanRequest) error {
-	loan, error := loanDomain.NewLoanForCreate(
+	loan, error := loanDomain.NewLoan(
 		request.Principal,
 		request.InterestRatePeriod,
 		request.PeriodNumbers,
@@ -75,71 +74,29 @@ func (s *LoanService) CreateLoan(request CreateLoanRequest) error {
 	return s.loanRepository.StoreLoan(&loan)
 }
 
-func (s *LoanService) PayLoan(payment *loanDomain.Payment) error {
+//PayLoan receive a payment for a specific loan
+func (s *LoanService) PayLoan(request PayLoanRequest) (PayLoanResponse, error) {
+	var response PayLoanResponse
+	payment := loanDomain.NewPayment(
+		request.LoanID,
+		request.PaymentAmount,
+		request.PaymentDate,
+		request.PaymentType,
+	)
 	loanRepository := s.loanRepository
-	loanPeriodsWithDebt, error := loanRepository.FindBillsWithDueOrOpenOrderedByPeriodAsc(payment.LoanID)
+	loan, error := loanRepository.FindLoanByID(payment.LoanID)
 	if error != nil {
-		return error
+		return response, error
 	}
-	//Liquidate Periods
-	/*
-		Como nota primero deberia aplicar los pagos corrientes y luego deberia decidir que hacer con el excedente
-		en caso de que se haya pagado algun extra.
-	*/
-	for _, period := range loanPeriodsWithDebt {
-		period.LiquidateByDate(payment.PaymentDate, 0)
-	}
-	var paidPeriods []loanDomain.Period
-	var paidPeriodMovements []loanDomain.LoanPeriodMovement
-	remainingPayment := payment.PaymentAmount.RoundBank(config.Round)
-	continueApplyingPayment := true
-	for _, period := range loanPeriodsWithDebt {
-		paymentToPeriod := decimal.Zero
-		if continueApplyingPayment {
-			if remainingPayment.LessThanOrEqual(period.TotalDebt) {
-				paymentToPeriod = remainingPayment
-			} else {
-				paymentToPeriod = period.TotalDebt
-			}
-			loanPeriodMovement := period.ApplyPayment(payment.ID, paymentToPeriod)
-			paidPeriods = append(paidPeriods, period)                             //I will use it for a store in batch
-			paidPeriodMovements = append(paidPeriodMovements, loanPeriodMovement) //I will use it for a store in batch
-			if period.FinalPrincipal.LessThanOrEqual(decimal.Zero) {
-				s.closeLoan(period.LoanID)
-			}
-			remainingPayment = remainingPayment.Sub(paymentToPeriod).RoundBank(config.Round)
-			continueApplyingPayment = remainingPayment.LessThanOrEqual(decimal.Zero)
-		}
-	}
+	remainingPayment := loan.ApplyPayment(payment)
 
-	/*if error := loanRepository.StorePayment(payment); error != nil {
-		return error
-	}
-	if error := s.loanRepository.StoreBillMovement(&loanPeriodMovement); error != nil {
-		return error
-	}
-	if error := s.loanRepository.UpdateBill(&period); error != nil {
-		return error
-	}*/
-	return nil
-}
-
-func (s *LoanService) closeLoan(loanID uint) error {
-	loan, error := s.loanRepository.FindLoanByID(loanID)
+	error = s.loanRepository.UpdateLoan(&loan)
 	if error != nil {
-		return error
+		return response, error
 	}
-	loan.State = loanDomain.LoanStateClosed
-	return s.loanRepository.UpdateLoan(&loan)
-}
-
-func nextBalanceFromLoanPeriod(loanPeriod loanDomain.Period) financial.Balance {
-	balance := financial.Balance{}
-	balance.InitialPrincipal = loanPeriod.InitialPrincipal
-	balance.Payment = loanPeriod.Payment
-	balance.InterestRatePeriod = loanPeriod.InterestRate
-	balance.ToInterest = loanPeriod.InterestOfPayment
-	balance.ToPrincipal = loanPeriod.PrincipalOfPayment
-	balance.FinalPrincipal = loanPeriod.FinalPrincipal
-	return financial.NextBalanceFromBefore(balance)
+	response.ID = remainingPayment.ID
+	response.LoanID = remainingPayment.LoanID
+	response.PaymentAmount = remainingPayment.PaymentAmount
+	response.RemainingAmount = remainingPayment.RemainingAmount
+	return response, nil
 }

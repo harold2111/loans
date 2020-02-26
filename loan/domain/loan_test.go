@@ -51,9 +51,9 @@ func TestLoan_CreateLoan(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := NewLoanForCreate(tt.args.principal, tt.args.interestRatePeriod, tt.args.periodNumbers, tt.args.startDate, tt.args.clientID)
+			got, err := NewLoan(tt.args.principal, tt.args.interestRatePeriod, tt.args.periodNumbers, tt.args.startDate, tt.args.clientID)
 			if err != nil {
-				t.Errorf("NewLoanForCreate() error = %v", err)
+				t.Errorf("NewLoan() error = %v", err)
 				return
 			}
 			if got.ClientID != tt.args.clientID {
@@ -80,11 +80,11 @@ func TestLoan_CreateLoan(t *testing.T) {
 			if !got.CloseDateAgreed.Equal(tt.want.closeDateAgreed) {
 				t.Errorf("CloseDateAgreed = %v, want %v", got.CloseDateAgreed, tt.want.closeDateAgreed)
 			}
-			periodsLen := len(got.periods)
+			periodsLen := len(got.Periods)
 			if periodsLen != int(tt.args.periodNumbers) {
 				t.Errorf("len(periods)  = %v, want %v", periodsLen, tt.args.periodNumbers)
 			}
-			lastPeriod := got.periods[periodsLen-1]
+			lastPeriod := got.Periods[periodsLen-1]
 			if !lastPeriod.FinalPrincipal.Equal(decimal.Zero) {
 				t.Errorf("lastPeriod.FinalPrincipal  = %v, want %v", lastPeriod.FinalPrincipal, decimal.Zero)
 			}
@@ -132,13 +132,13 @@ func TestLoan_CreatePeriods(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := NewLoanForCreate(tt.args.principal, tt.args.interestRatePeriod, tt.args.periodNumbers, tt.args.startDate, tt.args.clientID)
+			got, err := NewLoan(tt.args.principal, tt.args.interestRatePeriod, tt.args.periodNumbers, tt.args.startDate, tt.args.clientID)
 			if err != nil {
-				t.Errorf("NewLoanForCreate() error = %v", err)
+				t.Errorf("NewLoan() error = %v", err)
 				return
 			}
 			for _, periodExpected := range tt.want {
-				gotPeriod := got.periods[periodExpected.periodNumber-1]
+				gotPeriod := got.Periods[periodExpected.periodNumber-1]
 				if gotPeriod.LoanID != got.ID {
 					t.Errorf("LoanID = %v, want %v", gotPeriod.LoanID, got.ID)
 				}
@@ -225,14 +225,14 @@ func TestLoan_LiquidatePeriods(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := NewLoanForCreate(tt.args.principal, tt.args.interestRatePeriod, tt.args.periodNumbers, tt.args.startDate, tt.args.clientID)
+			got, err := NewLoan(tt.args.principal, tt.args.interestRatePeriod, tt.args.periodNumbers, tt.args.startDate, tt.args.clientID)
 			if err != nil {
-				t.Errorf("NewLoanForCreate() error = %v", err)
+				t.Errorf("NewLoan() error = %v", err)
 				return
 			}
 			got.LiquidateLoan(liqDate)
 			for _, periodExpected := range tt.want {
-				gotPeriod := got.periods[periodExpected.periodNumber-1]
+				gotPeriod := got.Periods[periodExpected.periodNumber-1]
 				if gotPeriod.PeriodNumber != periodExpected.periodNumber {
 					t.Errorf("PeriodNumber = %v, want %v", gotPeriod.PeriodNumber, periodExpected.periodNumber)
 				}
@@ -265,9 +265,10 @@ func TestLoan_LiquidatePeriods(t *testing.T) {
 func TestLoan_payLoanOnlyRegular(t *testing.T) {
 	paymentDate := toDate(2019, 3, 30)
 	payment := Payment{
-		PaymentAmount: toDecimal(48741.9365),
-		PaymentDate:   paymentDate,
-		PaymentType:   ExtraToNextPeriods,
+		PaymentAmount:   toDecimal(48741.9365),
+		RemainingAmount: toDecimal(48741.9365),
+		PaymentDate:     paymentDate,
+		PaymentType:     ExtraToNextPeriods,
 	}
 	tests := []struct {
 		name string
@@ -287,14 +288,14 @@ func TestLoan_payLoanOnlyRegular(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := NewLoanForCreate(tt.args.principal, tt.args.interestRatePeriod, tt.args.periodNumbers, tt.args.startDate, tt.args.clientID)
+			got, err := NewLoan(tt.args.principal, tt.args.interestRatePeriod, tt.args.periodNumbers, tt.args.startDate, tt.args.clientID)
 			if err != nil {
-				t.Errorf("NewLoanForCreate() error = %v", err)
+				t.Errorf("NewLoan() error = %v", err)
 				return
 			}
 			got.ApplyPayment(payment)
 			for _, periodExpected := range tt.want {
-				gotPeriod := got.periods[periodExpected.periodNumber-1]
+				gotPeriod := got.Periods[periodExpected.periodNumber-1]
 				if gotPeriod.PeriodNumber != periodExpected.periodNumber {
 					t.Errorf("PeriodNumber = %v, want %v", gotPeriod.PeriodNumber, periodExpected.periodNumber)
 				}
@@ -344,19 +345,20 @@ func TestLoan_payLoanWithExraToPrincipalAnullingLastPeriod(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := NewLoanForCreate(tt.args.principal, tt.args.interestRatePeriod, tt.args.periodNumbers, tt.args.startDate, tt.args.clientID)
+			got, err := NewLoan(tt.args.principal, tt.args.interestRatePeriod, tt.args.periodNumbers, tt.args.startDate, tt.args.clientID)
 			if err != nil {
-				t.Errorf("NewLoanForCreate() error = %v", err)
+				t.Errorf("NewLoan() error = %v", err)
 				return
 			}
 			payment := Payment{
-				PaymentAmount: toDecimal(132941.1144),
-				PaymentDate:   paymentDate,
-				PaymentType:   ExtraToPrincipal,
+				PaymentAmount:   toDecimal(132941.1144),
+				RemainingAmount: toDecimal(132941.1144),
+				PaymentDate:     paymentDate,
+				PaymentType:     ExtraToPrincipal,
 			}
 			got.ApplyPayment(payment)
 			for _, periodExpected := range tt.want {
-				gotPeriod := got.periods[periodExpected.periodNumber-1]
+				gotPeriod := got.Periods[periodExpected.periodNumber-1]
 				if gotPeriod.PeriodNumber != periodExpected.periodNumber {
 					t.Errorf("PeriodNumber = %v, want %v", gotPeriod.PeriodNumber, periodExpected.periodNumber)
 				}
@@ -406,19 +408,20 @@ func TestLoan_payWholePrincipalOnFirstMonth(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := NewLoanForCreate(tt.args.principal, tt.args.interestRatePeriod, tt.args.periodNumbers, tt.args.startDate, tt.args.clientID)
+			got, err := NewLoan(tt.args.principal, tt.args.interestRatePeriod, tt.args.periodNumbers, tt.args.startDate, tt.args.clientID)
 			if err != nil {
-				t.Errorf("NewLoanForCreate() error = %v", err)
+				t.Errorf("NewLoan() error = %v", err)
 				return
 			}
 			payment := Payment{
-				PaymentAmount: toDecimal(103500.0),
-				PaymentDate:   paymentDate,
-				PaymentType:   ExtraToPrincipal,
+				PaymentAmount:   toDecimal(103500.0),
+				RemainingAmount: toDecimal(103500.0),
+				PaymentDate:     paymentDate,
+				PaymentType:     ExtraToPrincipal,
 			}
 			got.ApplyPayment(payment)
 			for _, periodExpected := range tt.want {
-				gotPeriod := got.periods[periodExpected.periodNumber-1]
+				gotPeriod := got.Periods[periodExpected.periodNumber-1]
 				if gotPeriod.PeriodNumber != periodExpected.periodNumber {
 					t.Errorf("PeriodNumber = %v, want %v", gotPeriod.PeriodNumber, periodExpected.periodNumber)
 				}
@@ -468,19 +471,20 @@ func TestLoan_payInitialPrincipalOnFirstMonth(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := NewLoanForCreate(tt.args.principal, tt.args.interestRatePeriod, tt.args.periodNumbers, tt.args.startDate, tt.args.clientID)
+			got, err := NewLoan(tt.args.principal, tt.args.interestRatePeriod, tt.args.periodNumbers, tt.args.startDate, tt.args.clientID)
 			if err != nil {
-				t.Errorf("NewLoanForCreate() error = %v", err)
+				t.Errorf("NewLoan() error = %v", err)
 				return
 			}
 			payment := Payment{
-				PaymentAmount: toDecimal(100000.0),
-				PaymentDate:   paymentDate,
-				PaymentType:   ExtraToPrincipal,
+				PaymentAmount:   toDecimal(100000.0),
+				RemainingAmount: toDecimal(100000.0),
+				PaymentDate:     paymentDate,
+				PaymentType:     ExtraToPrincipal,
 			}
 			got.ApplyPayment(payment)
 			for _, periodExpected := range tt.want {
-				gotPeriod := got.periods[periodExpected.periodNumber-1]
+				gotPeriod := got.Periods[periodExpected.periodNumber-1]
 				if gotPeriod.PeriodNumber != periodExpected.periodNumber {
 					t.Errorf("PeriodNumber = %v, want %v", gotPeriod.PeriodNumber, periodExpected.periodNumber)
 				}
@@ -513,15 +517,17 @@ func TestLoan_payInitialPrincipalOnFirstMonth(t *testing.T) {
 func TestLoan_payLoanPartialPaymentInThirdMonth(t *testing.T) {
 	paymentDate1 := toDate(2019, 3, 30)
 	payment1 := Payment{
-		PaymentAmount: toDecimal(48741.9365),
-		PaymentDate:   paymentDate1,
-		PaymentType:   ExtraToNextPeriods,
+		PaymentAmount:   toDecimal(48741.9365),
+		RemainingAmount: toDecimal(48741.9365),
+		PaymentDate:     paymentDate1,
+		PaymentType:     ExtraToNextPeriods,
 	}
 	paymentDate2 := toDate(2019, 3, 30)
 	payment2 := Payment{
-		PaymentAmount: toDecimal(10000),
-		PaymentDate:   paymentDate2,
-		PaymentType:   ExtraToNextPeriods,
+		PaymentAmount:   toDecimal(10000),
+		RemainingAmount: toDecimal(10000),
+		PaymentDate:     paymentDate2,
+		PaymentType:     ExtraToNextPeriods,
 	}
 	tests := []struct {
 		name string
@@ -541,15 +547,15 @@ func TestLoan_payLoanPartialPaymentInThirdMonth(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := NewLoanForCreate(tt.args.principal, tt.args.interestRatePeriod, tt.args.periodNumbers, tt.args.startDate, tt.args.clientID)
+			got, err := NewLoan(tt.args.principal, tt.args.interestRatePeriod, tt.args.periodNumbers, tt.args.startDate, tt.args.clientID)
 			if err != nil {
-				t.Errorf("NewLoanForCreate() error = %v", err)
+				t.Errorf("NewLoan() error = %v", err)
 				return
 			}
 			got.ApplyPayment(payment1)
 			got.ApplyPayment(payment2)
 			for _, periodExpected := range tt.want {
-				gotPeriod := got.periods[periodExpected.periodNumber-1]
+				gotPeriod := got.Periods[periodExpected.periodNumber-1]
 				if gotPeriod.PeriodNumber != periodExpected.periodNumber {
 					t.Errorf("PeriodNumber = %v, want %v", gotPeriod.PeriodNumber, periodExpected.periodNumber)
 				}
@@ -582,15 +588,17 @@ func TestLoan_payLoanPartialPaymentInThirdMonth(t *testing.T) {
 func TestLoan_payAllInThirdMothWithSecondPayment(t *testing.T) {
 	paymentDate1 := toDate(2019, 3, 30)
 	payment1 := Payment{
-		PaymentAmount: toDecimal(48741.9365),
-		PaymentDate:   paymentDate1,
-		PaymentType:   ExtraToNextPeriods,
+		PaymentAmount:   toDecimal(48741.9365),
+		RemainingAmount: toDecimal(48741.9365),
+		PaymentDate:     paymentDate1,
+		PaymentType:     ExtraToNextPeriods,
 	}
 	paymentDate2 := toDate(2019, 3, 30)
 	payment2 := Payment{
-		PaymentAmount: toDecimal(64272.6254),
-		PaymentDate:   paymentDate2,
-		PaymentType:   ExtraToNextPeriods,
+		PaymentAmount:   toDecimal(64272.6254),
+		RemainingAmount: toDecimal(64272.6254),
+		PaymentDate:     paymentDate2,
+		PaymentType:     ExtraToNextPeriods,
 	}
 	tests := []struct {
 		name string
@@ -610,15 +618,15 @@ func TestLoan_payAllInThirdMothWithSecondPayment(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := NewLoanForCreate(tt.args.principal, tt.args.interestRatePeriod, tt.args.periodNumbers, tt.args.startDate, tt.args.clientID)
+			got, err := NewLoan(tt.args.principal, tt.args.interestRatePeriod, tt.args.periodNumbers, tt.args.startDate, tt.args.clientID)
 			if err != nil {
-				t.Errorf("NewLoanForCreate() error = %v", err)
+				t.Errorf("NewLoan() error = %v", err)
 				return
 			}
 			got.ApplyPayment(payment1)
 			got.ApplyPayment(payment2)
 			for _, periodExpected := range tt.want {
-				gotPeriod := got.periods[periodExpected.periodNumber-1]
+				gotPeriod := got.Periods[periodExpected.periodNumber-1]
 				if gotPeriod.PeriodNumber != periodExpected.periodNumber {
 					t.Errorf("PeriodNumber = %v, want %v", gotPeriod.PeriodNumber, periodExpected.periodNumber)
 				}

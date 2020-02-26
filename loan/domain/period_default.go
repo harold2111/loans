@@ -23,21 +23,21 @@ func newDefaultPeriod(periodID int, liquidationDate time.Time, daysInDefault int
 }
 
 func (d *DefaultPeriod) applyPayment(paymentID int, paymentAmount decimal.Decimal) decimal.Decimal {
-	remainingPayment := paymentAmount
-	if remainingPayment.LessThanOrEqual(decimal.Zero) || d.totalDebt().LessThanOrEqual(decimal.Zero) {
+	remainingAmount := paymentAmount
+	if remainingAmount.LessThanOrEqual(decimal.Zero) || d.totalDebt().LessThanOrEqual(decimal.Zero) {
 		return paymentAmount
 	}
 	var paymentToDefault decimal.Decimal
-	if remainingPayment.LessThanOrEqual(d.totalDebt()) {
-		paymentToDefault = remainingPayment
+	if remainingAmount.LessThanOrEqual(d.totalDebt()) {
+		paymentToDefault = remainingAmount
 	} else {
 		paymentToDefault = d.totalDebt()
 	}
 	d.PaidToDefault = d.PaidToDefault.Add(paymentToDefault).RoundBank(config.Round)
 	defaultPayment := newDefaultPayment(d.ID, paymentID, paymentToDefault)
 	d.Payments = append(d.Payments, defaultPayment)
-	remainingPayment = remainingPayment.Sub(paymentToDefault)
-	return remainingPayment.RoundBank(config.Round)
+	remainingAmount = remainingAmount.Sub(paymentToDefault)
+	return remainingAmount.RoundBank(config.Round)
 }
 
 func (d DefaultPeriod) totalDebt() decimal.Decimal {

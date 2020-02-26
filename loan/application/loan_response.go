@@ -7,12 +7,12 @@ import (
 )
 
 type LoanResponse struct {
-	ID                 uint            `json:"id"`
+	ID                 int             `json:"id"`
 	Principal          decimal.Decimal `json:"principal"`
 	InterestRatePeriod decimal.Decimal `json:"interestRatePeriod"`
-	PeriodNumbers      uint            `json:"periodNumbers"`
+	PeriodNumbers      int             `json:"periodNumbers"`
 	StartDate          time.Time       `json:"startDate"`
-	ClientID           uint            `json:"clientID"`
+	ClientID           int             `json:"clientID"`
 	PaymentAgreed      decimal.Decimal `json:"paymentAgreed"`
 	CloseDateAgreed    time.Time       `json:"closeDateAgreed"`
 	State              string          `json:"status"`

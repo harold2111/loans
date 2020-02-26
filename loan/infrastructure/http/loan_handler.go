@@ -2,11 +2,10 @@ package http
 
 //TODO: REMOVE CALLS TO MODEL
 import (
-	loanApplication "github.com/harold2111/loans/loan/application"
-	loanDomain "github.com/harold2111/loans/loan/domain"
 	"net/http"
 
-	"github.com/jinzhu/copier"
+	loanApplication "github.com/harold2111/loans/loan/application"
+
 	"github.com/labstack/echo"
 )
 
@@ -60,19 +59,12 @@ func (handler *HttpLoanHandler) handleCreateLoan(context echo.Context) error {
 
 func (handler *HttpLoanHandler) handlePayLoan(context echo.Context) error {
 	loanService := handler.LoanService
-	request := loanApplication.CreatePaymentRequest{}
+	request := loanApplication.PayLoanRequest{}
 	if error := context.Bind(&request); error != nil {
 		return error
 	}
-	payment := loanDomain.Payment{}
-	if error := copier.Copy(&payment, &request); error != nil {
-		return error
-	}
-	if error := loanService.PayLoan(&payment); error != nil {
-		return error
-	}
-	response := loanApplication.PaymentResponse{}
-	if error := copier.Copy(&response, &payment); error != nil {
+	response, error := loanService.PayLoan(request)
+	if error != nil {
 		return error
 	}
 	return context.JSON(http.StatusOK, response)

@@ -23,7 +23,7 @@ func (s *ClientService) CreateClient(createClientRequest CreateClientRequest) er
 	var clientAddresses []clientDomain.Address
 	for _, createClientAddress := range createClientRequest.Addresses {
 		address, err := clientDomain.NewAddessForCreateClient(
-			createClientAddress.StretAddress,
+			createClientAddress.StreetAddress,
 			createClientAddress.DepartmentID,
 			createClientAddress.CityID)
 		if err != nil {
@@ -84,7 +84,7 @@ func (s *ClientService) UpdateClient(updateClientRequest UpdateClientRequest) er
 	for _, updateAddressClientRequest := range updateClientRequest.Addresses {
 		clientAddress, err := clientDomain.NewAddessForUpdateClient(
 			updateAddressClientRequest.ID,
-			updateAddressClientRequest.StretAddress,
+			updateAddressClientRequest.StreetAddress,
 			updateAddressClientRequest.DepartmentID,
 			updateAddressClientRequest.CityID,
 		)

@@ -8,7 +8,7 @@ type LocationService struct {
 	locationRepository locationDomain.LocationRepository
 }
 
-// NewLocationService creates a deparment service with necessary dependencies.
+// NewLocationService creates a department service with necessary dependencies.
 func NewLocationService(locationRepository locationDomain.LocationRepository) LocationService {
 	return LocationService{
 		locationRepository: locationRepository,

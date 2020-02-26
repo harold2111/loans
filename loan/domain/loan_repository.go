@@ -5,11 +5,11 @@ type LoanRepository interface {
 	FindAll() ([]Loan, error)
 	StoreLoan(loan *Loan) error
 	UpdateLoan(loan *Loan) error
-	FindLoanByID(loanID uint) (Loan, error)
+	FindLoanByID(loanID int) (Loan, error)
 	StoreBill(bill *Period) error
 	UpdateBill(bill *Period) error
-	FindBillsByLoanID(loanID uint) ([]Period, error)
-	FindBillsWithDueOrOpenOrderedByPeriodAsc(loanID uint) ([]Period, error)
-	FindBillOpenPeriodByLoanID(loanID uint) (Period, error)
+	FindBillsByLoanID(loanID int) ([]Period, error)
+	FindBillsWithDueOrOpenOrderedByPeriodAsc(loanID int) ([]Period, error)
+	FindBillOpenPeriodByLoanID(loanID int) (Period, error)
 	StorePayment(payment *Payment) error
 }

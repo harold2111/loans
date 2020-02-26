@@ -9,7 +9,7 @@ import (
 type CreateLoanRequest struct {
 	Principal          decimal.Decimal `json:"principal"`
 	InterestRatePeriod decimal.Decimal `json:"interestRatePeriod"`
-	PeriodNumbers      uint            `json:"periodNumbers"`
+	PeriodNumbers      int             `json:"periodNumbers"`
 	StartDate          time.Time       `json:"startDate"`
-	ClientID           uint            `json:"clientID"`
+	ClientID           int             `json:"clientID"`
 }

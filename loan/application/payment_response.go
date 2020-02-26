@@ -6,9 +6,10 @@ import (
 	"github.com/shopspring/decimal"
 )
 
-type PaymentResponse struct {
-	ID            uint            `gorm:"primary_key" json:"id"`
-	LoanID        uint            `gorm:"not null" json:"loanID" validate:"required"`
-	PaymentAmount decimal.Decimal `gorm:"not null; type:numeric" json:"paymentAmount"`
-	PaymentDate   time.Time       `json:"paymentDate"`
+type PayLoanResponse struct {
+	ID              int             `gorm:"primary_key" json:"id"`
+	LoanID          int             `gorm:"not null" json:"loanID" validate:"required"`
+	PaymentAmount   decimal.Decimal `gorm:"not null; type:numeric" json:"paymentAmount"`
+	RemainingAmount decimal.Decimal `gorm:"not null; type:numeric" json:"remainingAmount"`
+	PaymentDate     time.Time       `json:"paymentDate"`
 }

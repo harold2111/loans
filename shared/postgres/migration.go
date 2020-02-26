@@ -1,7 +1,7 @@
 package postgres
 
 import (
-	clientnDomain "github.com/harold2111/loans/client/domain"
+	clientDomain "github.com/harold2111/loans/client/domain"
 	loanDomain "github.com/harold2111/loans/loan/domain"
 	locationDomain "github.com/harold2111/loans/location/domain"
 
@@ -11,13 +11,13 @@ import (
 func MigrateModel(db *gorm.DB) {
 	db.LogMode(true)
 
-	db.DropTableIfExists(&clientnDomain.Client{}, &clientnDomain.Address{}, &locationDomain.City{}, &locationDomain.Department{},
+	db.DropTableIfExists(&clientDomain.Client{}, &clientDomain.Address{}, &locationDomain.City{}, &locationDomain.Department{},
 		&locationDomain.Country{}, &loanDomain.Loan{}, &loanDomain.Period{}, &loanDomain.Payment{})
 
-	db.CreateTable(&clientnDomain.Client{}, &clientnDomain.Address{}, &locationDomain.City{}, &locationDomain.Department{},
+	db.CreateTable(&clientDomain.Client{}, &clientDomain.Address{}, &locationDomain.City{}, &locationDomain.Department{},
 		&locationDomain.Country{}, &loanDomain.Loan{}, &loanDomain.Period{}, &loanDomain.Payment{})
 
-	db.Model(&clientnDomain.Client{}).Related(&clientnDomain.Address{})
+	db.Model(&clientDomain.Client{}).Related(&clientDomain.Address{})
 
 	atlanticoCities := []locationDomain.City{
 		{

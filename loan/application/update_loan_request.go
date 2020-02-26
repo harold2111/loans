@@ -1,6 +1,6 @@
 package application
 
 type UpdateLoanRequest struct {
-	ID uint `json:"id"`
+	ID int `json:"id"`
 	CreateLoanRequest
 }
