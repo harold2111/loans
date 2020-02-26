@@ -11,6 +11,7 @@ const (
 
 //PeriodPayment represents payment to a default
 type PeriodPayment struct {
+	ID          int `gorm:"primary_key"`
 	PeriodID    int
 	PaymentID   int
 	Amount      decimal.Decimal `gorm:"not null; type:numeric"`
@@ -18,5 +19,5 @@ type PeriodPayment struct {
 }
 
 func newPeriodPayment(periodID int, paymentID int, amount decimal.Decimal, paymentType string) PeriodPayment {
-	return PeriodPayment{periodID, paymentID, amount, paymentType}
+	return PeriodPayment{0, periodID, paymentID, amount, paymentType}
 }

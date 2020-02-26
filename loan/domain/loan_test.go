@@ -325,6 +325,69 @@ func TestLoan_payLoanOnlyRegular(t *testing.T) {
 	}
 }
 
+func TestLoan_payLoanInFirstMonthWithExtraToNextPeriods(t *testing.T) {
+	paymentDate := toDate(2019, 1, 31)
+	payment := Payment{
+		PaymentAmount:   toDecimal(110740.6866),
+		RemainingAmount: toDecimal(110740.6866),
+		PaymentDate:     paymentDate,
+		PaymentType:     ExtraToNextPeriods,
+	}
+	tests := []struct {
+		name string
+		args createLoanArgs
+		want []liquidationExpected
+	}{{
+		"TestLoan_payLoanOnlyRegular",
+		createLoanArgs{toDecimal(100000), toDecimal(0.035), 5, toDate(2019, 1, 1), 1},
+		[]liquidationExpected{
+			{1, 0, decimal.Zero, decimal.Zero, decimal.Zero, 0, 1, PeriodStatePaid},
+			{2, 0, decimal.Zero, decimal.Zero, decimal.Zero, 0, 1, PeriodStatePaid},
+			{3, 0, decimal.Zero, decimal.Zero, decimal.Zero, 0, 1, PeriodStatePaid},
+			{4, 0, decimal.Zero, decimal.Zero, decimal.Zero, 0, 1, PeriodStatePaid},
+			{5, 0, decimal.Zero, decimal.Zero, decimal.Zero, 0, 1, PeriodStatePaid},
+		},
+	},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := NewLoan(tt.args.principal, tt.args.interestRatePeriod, tt.args.periodNumbers, tt.args.startDate, tt.args.clientID)
+			if err != nil {
+				t.Errorf("NewLoan() error = %v", err)
+				return
+			}
+			got.ApplyPayment(payment)
+			for _, periodExpected := range tt.want {
+				gotPeriod := got.Periods[periodExpected.periodNumber-1]
+				if gotPeriod.PeriodNumber != periodExpected.periodNumber {
+					t.Errorf("PeriodNumber = %v, want %v", gotPeriod.PeriodNumber, periodExpected.periodNumber)
+				}
+				if !gotPeriod.TotalRegularDebt().Equal(periodExpected.TotalRegularDebt) {
+					t.Errorf("TotalRegularDebt() = %v, want %v", gotPeriod.TotalRegularDebt(), periodExpected.TotalRegularDebt)
+				}
+				if gotPeriod.TotalDaysInDefault() != periodExpected.totalDaysInDefault {
+					t.Errorf("TotalDaysInDefault() = %v, want %v", gotPeriod.TotalDaysInDefault(), periodExpected.totalDaysInDefault)
+				}
+				if !gotPeriod.TotalDefaultDebt().Equal(periodExpected.totalDebtForDefault) {
+					t.Errorf("TotalDefaultDebt() = %v, want %v", gotPeriod.TotalDefaultDebt(), periodExpected.totalDebtForDefault)
+				}
+				if !gotPeriod.TotalDebt().Equal(periodExpected.totalDebt) {
+					t.Errorf("TotalDebt() = %v, want %v", gotPeriod.TotalDebt(), periodExpected.totalDebt)
+				}
+				if gotPeriod.State != periodExpected.state {
+					t.Errorf("State = %v, want %v", gotPeriod.State, periodExpected.state)
+				}
+				if len(gotPeriod.DefaultPeriods) != periodExpected.defaultExpecteds {
+					t.Errorf("len(gotPeriod.PeriodDefaults) = %v, want %v", len(gotPeriod.DefaultPeriods), periodExpected.defaultExpecteds)
+				}
+				if len(gotPeriod.Payments) != periodExpected.paymentExpecteds {
+					t.Errorf("len(gotPeriod.PeriodPayments)  = %v, want %v", len(gotPeriod.Payments), periodExpected.paymentExpecteds)
+				}
+			}
+		})
+	}
+}
+
 func TestLoan_payLoanWithExraToPrincipalAnullingLastPeriod(t *testing.T) {
 	paymentDate := toDate(2019, 3, 30)
 	tests := []struct {

@@ -29,6 +29,7 @@ type Payment struct {
 
 //NewPayment create a new payment
 func NewPayment(loanID int, paymentAmount decimal.Decimal, paymentDate time.Time, paymentType string) Payment {
+	//TODO: Validate payment mandatory fields
 	return Payment{
 		LoanID:          loanID,
 		PaymentAmount:   paymentAmount,

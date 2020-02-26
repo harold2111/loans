@@ -30,7 +30,7 @@ func (r *loanRepository) FindAll() ([]loanDomain.Loan, error) {
 
 func (r *loanRepository) FindLoanByID(loanID int) (loanDomain.Loan, error) {
 	var loan loanDomain.Loan
-	respose := r.db.First(&loan, loanID)
+	respose := r.db.Set("gorm:auto_preload", true).First(&loan, loanID)
 	if error := respose.Error; error != nil {
 		if respose.RecordNotFound() {
 			messagesParameters := []interface{}{loanID}

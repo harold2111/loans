@@ -88,14 +88,18 @@ func (s *LoanService) PayLoan(request PayLoanRequest) (PayLoanResponse, error) {
 	if error != nil {
 		return response, error
 	}
+	error = s.loanRepository.StorePayment(&payment)
+	if error != nil {
+		return response, error
+	}
 	remainingPayment := loan.ApplyPayment(payment)
-
 	error = s.loanRepository.UpdateLoan(&loan)
 	if error != nil {
 		return response, error
 	}
 	response.ID = remainingPayment.ID
 	response.LoanID = remainingPayment.LoanID
+	response.PaymentDate = remainingPayment.PaymentDate
 	response.PaymentAmount = remainingPayment.PaymentAmount
 	response.RemainingAmount = remainingPayment.RemainingAmount
 	return response, nil
