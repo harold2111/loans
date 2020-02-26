@@ -18,9 +18,9 @@ func NewLoanHttpHandler(e *echo.Echo, loanService loanApplication.LoanService) {
 		LoanService: loanService,
 	}
 	e.GET("/api/loans", handler.handleFindAllLoans)
-	e.POST("/api/github.com/harold2111/loans/simulate", handler.handleSimulateLoan)
 	e.POST("/api/loans", handler.handleCreateLoan)
-	e.POST("/api/github.com/harold2111/loans/payments", handler.handlePayLoan)
+	e.POST("/api/loans/simulate", handler.handleSimulateLoan)
+	e.POST("/api/loans/pay", handler.handlePayLoan)
 }
 
 func (handler *HttpLoanHandler) handleFindAllLoans(context echo.Context) error {
