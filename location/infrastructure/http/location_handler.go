@@ -1,9 +1,10 @@
 package http
 
 import (
-	locationApplication "github.com/harold2111/loans/location/application"
 	"net/http"
 	"strconv"
+
+	locationApplication "github.com/harold2111/loans/location/application"
 
 	"github.com/jinzhu/copier"
 	"github.com/labstack/echo"
@@ -36,8 +37,8 @@ func (handler *HttplocationHandler) handleFindAllDepartments(c echo.Context) err
 
 func (handler *HttplocationHandler) handleFindCitiesByDepartmentID(c echo.Context) error {
 	locationService := handler.locationService
-	deparmentID, _ := strconv.Atoi(c.QueryParam("departmentID"))
-	cities, error := locationService.FindCitiesByDepartmentID(uint(deparmentID))
+	departmentID, _ := strconv.Atoi(c.QueryParam("departmentID"))
+	cities, error := locationService.FindCitiesByDepartmentID(uint(departmentID))
 	if error != nil {
 		return error
 	}
