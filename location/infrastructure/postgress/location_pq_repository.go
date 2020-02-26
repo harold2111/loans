@@ -11,8 +11,8 @@ type locationRepository struct {
 	db *gorm.DB
 }
 
-// NewLocationRepositoryy returns a new instance of a Postgres location repository.
-func NewLocationRepositoryy(db *gorm.DB) (locationDomain.LocationRepository, error) {
+// NewLocationRepository returns a new instance of a Postgres location repository.
+func NewLocationRepository(db *gorm.DB) (locationDomain.LocationRepository, error) {
 	r := &locationRepository{
 		db: db,
 	}

@@ -13,7 +13,7 @@ const (
 type PeriodPayment struct {
 	PeriodID    int
 	PaymentID   int
-	Amount      decimal.Decimal
+	Amount      decimal.Decimal `gorm:"not null; type:numeric"`
 	PaymentType string
 }
 

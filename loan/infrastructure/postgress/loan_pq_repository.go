@@ -34,7 +34,7 @@ func (r *loanRepository) FindLoanByID(loanID int) (loanDomain.Loan, error) {
 	if error := respose.Error; error != nil {
 		if respose.RecordNotFound() {
 			messagesParameters := []interface{}{loanID}
-			return loan, &errors.RecordNotFound{ErrorCode: errors.ClientNotExist, MessagesParameters: messagesParameters}
+			return loan, &errors.RecordNotFound{ErrorCode: errors.LoanNotExist, MessagesParameters: messagesParameters}
 		}
 		return loan, error
 	}

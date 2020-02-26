@@ -16,15 +16,15 @@ const (
 
 //Payment represents a loan payment
 type Payment struct {
-	ID              int             `gorm:"primary_key" json:"id"`
-	CreatedAt       time.Time       `json:"-"`
-	UpdatedAt       time.Time       `json:"-"`
-	DeletedAt       *time.Time      `sql:"index" json:"-"`
-	LoanID          int             `gorm:"not null" json:"loanID" validate:"required"`
-	PaymentAmount   decimal.Decimal `gorm:"not null; type:numeric" json:"paymentAmount"`
-	RemainingAmount decimal.Decimal `gorm:"not null; type:numeric" json:"remainingPayment"`
-	PaymentDate     time.Time       `json:"paymentDate"`
-	PaymentType     string          `json:"paymentType"`
+	ID              int `gorm:"primary_key" json:"id"`
+	CreatedAt       time.Time
+	UpdatedAt       time.Time
+	DeletedAt       *time.Time      `sql:"index"`
+	LoanID          int             `gorm:"not null" validate:"required"`
+	PaymentAmount   decimal.Decimal `gorm:"not null; type:numeric"`
+	RemainingAmount decimal.Decimal `gorm:"not null; type:numeric"`
+	PaymentDate     time.Time
+	PaymentType     string
 }
 
 //NewPayment create a new payment

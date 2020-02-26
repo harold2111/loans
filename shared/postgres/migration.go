@@ -11,11 +11,37 @@ import (
 func MigrateModel(db *gorm.DB) {
 	db.LogMode(true)
 
-	db.DropTableIfExists(&clientDomain.Client{}, &clientDomain.Address{}, &locationDomain.City{}, &locationDomain.Department{},
-		&locationDomain.Country{}, &loanDomain.Loan{}, &loanDomain.Period{}, &loanDomain.Payment{})
-
-	db.CreateTable(&clientDomain.Client{}, &clientDomain.Address{}, &locationDomain.City{}, &locationDomain.Department{},
-		&locationDomain.Country{}, &loanDomain.Loan{}, &loanDomain.Period{}, &loanDomain.Payment{})
+	db.DropTableIfExists(
+		//Client module
+		&clientDomain.Client{},
+		&clientDomain.Address{},
+		//Location module
+		&locationDomain.City{},
+		&locationDomain.Department{},
+		&locationDomain.Country{},
+		//Loan module
+		&loanDomain.Loan{},
+		&loanDomain.Payment{},
+		&loanDomain.Period{},
+		&loanDomain.PeriodPayment{},
+		&loanDomain.DefaultPeriod{},
+		&loanDomain.DefaultPayment{},
+	)
+	db.CreateTable( //Client module
+		&clientDomain.Client{},
+		&clientDomain.Address{},
+		//Location module
+		&locationDomain.City{},
+		&locationDomain.Department{},
+		&locationDomain.Country{},
+		//Loan module
+		&loanDomain.Loan{},
+		&loanDomain.Payment{},
+		&loanDomain.Period{},
+		&loanDomain.PeriodPayment{},
+		&loanDomain.DefaultPeriod{},
+		&loanDomain.DefaultPayment{},
+	)
 
 	db.Model(&clientDomain.Client{}).Related(&clientDomain.Address{})
 
