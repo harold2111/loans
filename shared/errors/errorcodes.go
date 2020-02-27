@@ -15,6 +15,7 @@ const (
 	ToManyBillActives       = "ToManyBillActives"
 	NotDataFound            = "NotDataFound"
 	NotCitiesForDepartment  = "NotCitiesForDepartment"
+	PaymentTypeInvalid      = "PaymentTypeInvalid"
 
 	RequiredField = "RequiredField"
 	InvalidField  = "InvalidField"
@@ -35,6 +36,7 @@ var ErrorMessages = map[string]string{
 	ToManyBillActives:       "To many bill actives",
 	NotDataFound:            "Not Data Found",
 	NotCitiesForDepartment:  "There are no cities for department %v",
+	PaymentTypeInvalid:      "Payment type contains a invalid value",
 
 	RequiredField: "The field '%v' is mandatory",
 	InvalidField:  "The field '%v' is invalid",

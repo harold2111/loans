@@ -3,6 +3,8 @@ package domain
 import (
 	"time"
 
+	"github.com/harold2111/loans/shared/errors"
+	"github.com/harold2111/loans/shared/utils"
 	"github.com/shopspring/decimal"
 )
 
@@ -28,15 +30,35 @@ type Payment struct {
 }
 
 //NewPayment create a new payment
-func NewPayment(loanID int, paymentAmount decimal.Decimal, paymentDate time.Time, paymentType string) Payment {
-	//TODO: Validate payment mandatory fields
-	return Payment{
+func NewPayment(loanID int, paymentAmount decimal.Decimal, paymentDate time.Time, paymentType string) (Payment, error) {
+	payment := Payment{
 		LoanID:          loanID,
 		PaymentAmount:   paymentAmount,
 		RemainingAmount: paymentAmount,
 		PaymentDate:     paymentDate,
 		PaymentType:     paymentType,
 	}
+	error := payment.validateForCreation()
+	if error != nil {
+		return Payment{}, error
+	}
+	return payment, nil
+
+}
+
+func (p *Payment) validateForCreation() error {
+	if error := utils.ValidateVar("loanID", p.LoanID, "required"); error != nil {
+		return error
+	} else if error := utils.ValidateVar("paymentAmount", p.PaymentAmount, "required"); error != nil {
+		return error
+	} else if error := utils.ValidateVar("paymentDate", p.PaymentDate, "required"); error != nil {
+		return error
+	} else if error := utils.ValidateVar("PaymentType", p.PaymentType, "required"); error != nil {
+		return error
+	} else if !p.isExtraToNextPeriods() && !p.isExtraToPrincipal() {
+		return &errors.GracefulError{ErrorCode: errors.PaymentTypeInvalid}
+	}
+	return nil
 }
 
 func (p Payment) isExtraToPrincipal() bool {

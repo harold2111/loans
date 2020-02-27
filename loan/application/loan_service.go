@@ -77,12 +77,15 @@ func (s *LoanService) CreateLoan(request CreateLoanRequest) error {
 //PayLoan receive a payment for a specific loan
 func (s *LoanService) PayLoan(request PayLoanRequest) (PayLoanResponse, error) {
 	var response PayLoanResponse
-	payment := loanDomain.NewPayment(
+	payment, error := loanDomain.NewPayment(
 		request.LoanID,
 		request.PaymentAmount,
 		request.PaymentDate,
 		request.PaymentType,
 	)
+	if error != nil {
+		return PayLoanResponse{}, error
+	}
 	loanRepository := s.loanRepository
 	loan, error := loanRepository.FindLoanByID(payment.LoanID)
 	if error != nil {
