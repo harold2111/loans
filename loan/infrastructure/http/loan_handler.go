@@ -25,11 +25,11 @@ func NewLoanHttpHandler(e *echo.Echo, loanService loanApplication.LoanService) {
 
 func (handler *HttpLoanHandler) handleFindAllLoans(context echo.Context) error {
 	loanService := handler.LoanService
-	loans, error := loanService.FindAllLoans()
+	response, error := loanService.FindAllLoans()
 	if error != nil {
 		return error
 	}
-	return context.JSON(http.StatusOK, loans)
+	return context.JSON(http.StatusOK, response)
 }
 
 func (handler *HttpLoanHandler) handleSimulateLoan(context echo.Context) error {

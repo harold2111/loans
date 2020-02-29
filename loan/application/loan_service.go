@@ -20,13 +20,22 @@ func NewLoanService(loanRepository loanDomain.LoanRepository, clientRepository c
 }
 
 //FindAllLoans finds all loans in the system
-func (s *LoanService) FindAllLoans() ([]loanDomain.Loan, error) {
-	return s.loanRepository.FindAll()
+func (s *LoanService) FindAllLoans() ([]LoanResponse, error) {
+	var responses []LoanResponse
+	loans, error := s.loanRepository.FindAll()
+	if error != nil {
+		return responses, nil
+	}
+	for _, loan := range loans {
+		response := transformLoanToLoanResponse(loan)
+		responses = append(responses, response)
+	}
+	return responses, nil
 }
 
 //SimulateLoan creates and returns a loan without persisting
-func (s *LoanService) SimulateLoan(request CreateLoanRequest) (LoanAmortizationsResponse, error) {
-	var response LoanAmortizationsResponse
+func (s *LoanService) SimulateLoan(request CreateLoanRequest) (LoanResponse, error) {
+	var response LoanResponse
 	loan, error := loanDomain.NewLoan(
 		request.Principal,
 		request.InterestRatePeriod,
@@ -37,25 +46,7 @@ func (s *LoanService) SimulateLoan(request CreateLoanRequest) (LoanAmortizations
 	if error != nil {
 		return response, error
 	}
-	response.ID = 0
-	response.Principal = loan.Principal
-	response.InterestRatePeriod = loan.InterestRatePeriod
-	response.PeriodNumbers = loan.PeriodNumbers
-	response.StartDate = loan.StartDate
-	response.ClientID = loan.ClientID
-	response.PaymentAgreed = loan.PaymentAgreed
-	periods := loan.Periods
-	response.Amortizations = make([]AmortizationResponse, len(periods))
-	for index, period := range periods {
-		response.Amortizations[index].Period = index + 1
-		response.Amortizations[index].MaxPaymentDate = period.MaxPaymentDate
-		response.Amortizations[index].InitialPrincipal = period.InitialPrincipal
-		response.Amortizations[index].Payment = period.Payment
-		response.Amortizations[index].InterestRatePeriod = period.InterestRate
-		response.Amortizations[index].ToInterest = period.InterestOfPayment
-		response.Amortizations[index].ToPrincipal = period.PrincipalOfPayment
-		response.Amortizations[index].FinalPrincipal = period.FinalPrincipal
-	}
+	response = transformLoanToLoanResponse(loan)
 	return response, nil
 }
 
@@ -106,4 +97,28 @@ func (s *LoanService) PayLoan(request PayLoanRequest) (PayLoanResponse, error) {
 	response.PaymentAmount = remainingPayment.PaymentAmount
 	response.RemainingAmount = remainingPayment.RemainingAmount
 	return response, nil
+}
+
+func transformLoanToLoanResponse(loan loanDomain.Loan) LoanResponse {
+	var response LoanResponse
+	response.ID = 0
+	response.Principal = loan.Principal
+	response.InterestRatePeriod = loan.InterestRatePeriod
+	response.PeriodNumbers = loan.PeriodNumbers
+	response.StartDate = loan.StartDate
+	response.ClientID = loan.ClientID
+	response.PaymentAgreed = loan.PaymentAgreed
+	periods := loan.Periods
+	response.Periods = make([]PeriodResponse, len(periods))
+	for index, period := range periods {
+		response.Periods[index].Period = index + 1
+		response.Periods[index].MaxPaymentDate = period.MaxPaymentDate
+		response.Periods[index].InitialPrincipal = period.InitialPrincipal
+		response.Periods[index].Payment = period.Payment
+		response.Periods[index].InterestRatePeriod = period.InterestRate
+		response.Periods[index].ToInterest = period.InterestOfPayment
+		response.Periods[index].ToPrincipal = period.PrincipalOfPayment
+		response.Periods[index].FinalPrincipal = period.FinalPrincipal
+	}
+	return response
 }

@@ -6,7 +6,7 @@ import (
 	"github.com/shopspring/decimal"
 )
 
-type AmortizationResponse struct {
+type PeriodResponse struct {
 	Period             int             `json:"period"`
 	MaxPaymentDate     time.Time       `json:"paymentDate"`
 	InitialPrincipal   decimal.Decimal `json:"initialPrincipal"`
